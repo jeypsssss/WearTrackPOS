@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WearTrack POS Offline</title>
+<style>
+/* ---------- PASTEL BLUE THEME + layout ---------- */
+:root{
+ --bg: #e6f3ff;
+ --card: #ffffff;
+ --primary: #7fb7ff;
+ --primary-dark: #5ea8ff;
+ --muted: #5a6b7a;
+ --danger: #ff6b6b;
+ --accent-ghost: #dff1ff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+ margin:0; padding:0;
+ background: var(--bg);
+ color: var(--muted);
+ -webkit-font-smoothing:antialiased;
+}
+
+.container { max-width:1200px; margin:auto; padding:10px; }
+
+h2, h3 { text-align:center; color: #12355b; margin:8px 0; }
+button {
+ padding:6px 12px; border:none; border-radius:6px;
+ background:var(--primary); color:white; cursor:pointer; transition:0.16s;
+ box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+button:hover { background:var(--primary-dark); transform: translateY(-1px); }
+input, select {
+ width:100%; padding:10px; margin:6px 0;
+ border:1px solid #cfe9ff; border-radius:6px;
+ background: white;
+}
+.hidden { display:none; }
+
+/* ---------- SECTIONS ---------- */
+.section { margin-top:18px; }
+#inventoryList div, #cashierList div {
+ margin-bottom:10px; padding:10px;
+  background:var(--card); border-radius:8px;
+ box-shadow:0 2px 5px rgba(0,0,0,0.06);
+ display:flex; justify-content:space-between; align-items:center;
+}
+
+/* ---------- POS LAYOUT ---------- */
+#pos { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; align-items:flex-start; }
+#productGrid {
+ display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
+ gap:12px; flex:2; max-height:640px; overflow-y:auto; padding-right:6px;
+}
+.product {
+  background:var(--card); border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.06);
+  cursor:pointer; display:flex; flex-direction:column; align-items:center; padding:10px; text-align:center;
+  transition:0.14s;
+}
+.product:hover { transform:translateY(-4px); box-shadow:0 6px 16px rgba(0,0,0,0.08); }
+
+#cart {
+  flex:1.5; background:var(--card); padding:12px; border-radius:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06); max-height:640px; display:flex; flex-direction:column;
+  min-width:250px;
+}
+#cart table { width:100%; border-collapse:collapse; margin-bottom:12px; }
+#cart th, #cart td { border-bottom:1px solid #eef6ff; padding:6px; text-align:left; font-size:14px; color:var(--muted); }
+#cart th { background:var(--accent-ghost); }
+
+/* ---------- MODAL ---------- */
+.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.35); justify-content:center; align-items:center; z-index:9999; }
+.modal-content { background:var(--card); padding:18px; border-radius:12px; width:92%; max-width:420px; box-shadow:0 8px 24px rgba(0,0,0,0.12); }
+.qty-buttons { display:flex; align-items:center; gap:6px; }
+.qty-buttons button { width:34px; }
+
+/* ---------- CATEGORY BUTTONS ---------- */
+#adminCategoryButtons button, #cashierCategoryButtons button { margin-right:6px; margin-bottom:8px; background:var(--primary); }
+#adminCategoryButtons button:hover, #cashierCategoryButtons button:hover { background:var(--primary-dark); }
+
+/* ---------- DAILY SALES ---------- */
+#dailySalesList div, #salesList div { background:var(--card); padding:10px; border-radius:8px; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+.small-x { background:var(--danger); color:white; border-radius:50%; width:26px; height:26px; font-weight:bold; border:none; cursor:pointer; }
+
+/* ---------- RESPONSIVE ---------- */
+@media(max-width:900px){
+ #pos { flex-direction:column; gap:10px; }
+ #productGrid { max-height:none; width:100%; }
+ #cart { max-height:none; width:100%; margin-top:10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login" class="container">
+ <h2>Densio POS Login</h2>
+  <input type="text" id="username" placeholder="Username">
+ <input type="password" id="password" placeholder="Password">
+ <button onclick="login()">Login</button>
+ <p id="loginMsg" style="color:crimson;"></p>
+</div>
+
+<!-- ADMIN PAGE -->
+<div id="adminPage" class="container hidden">
+ <h2>Admin Dashboard</h2>
+ <button onclick="showSection('inventory')">Inventory</button>
+ <button onclick="showSection('cashiers')">Cashiers</button>
+ <button onclick="showSection('salesSummary')">Sales Summary</button>
+ <button onclick="logout()">Logout</button>
+
+ <div id="inventory" class="hidden section">
+   <h3>Inventory</h3>
+   <button onclick="toggleAddProduct()">Add Product</button>
+   <div id="addProductForm" class="hidden">
+    <input type="text" id="prodName" placeholder="Product Name">
+      <select id="prodCat">
+        <option value="">Select Category</option>
+        <option value="Sportswear">Sportswear</option>
+        <option value="Silver">Silver</option>
+        <option value="Indu">Indu</option>
+     </select>
+     <input type="number" id="prodPrice" placeholder="Price">
+     <input type="number" id="prodStock" placeholder="Stock Quantity">
+      <button onclick="addProduct()">Add</button>
+    </div>
+    <div id="inventoryList"></div>
+  </div>
+
+  <div id="cashiers" class="hidden section">
+    <h3>Cashiers</h3>
+    <input type="text" id="cashierName" placeholder="Cashier Username">
+    <input type="password" id="cashierPass" placeholder="Password">
+    <button onclick="addCashier()">Add Cashier</button>
+    <div id="cashierList"></div>
+  </div>
+
+  <div id="salesSummary" class="hidden section">
+    <h3>Sales Summary</h3>
+    <div id="adminCategoryButtons"></div>
+    <div id="salesList"></div>
+  </div>
+</div>
+
+<!-- CASHIER PAGE -->
+<div id="cashierPage" class="container hidden">
+  <div id="cashierHeader" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h2>Cashier POS</h2>
+    <button onclick="logout()">Logout</button>
+  </div>
+  <div id="cashierCategoryButtons"></div>
+  <div id="pos">
+    <div id="productGrid"></div>
+    <div id="cart">
+      <h3>Cart</h3>
+      <table id="cartTable">
+        <tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th>Remove</th></tr>
+      </table>
+      <p style="font-weight:700; margin-top:8px;">Total: ₱<span id="cartTotal">0</span></p>
+      <button onclick="checkout()">Checkout</button>
+    </div>
+  </div>
+  <div id="dailySummary" class="section">
+    <h3>Daily Sales</h3>
+    <div id="dailySalesList"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="productModal" class="modal">
+  <div class="modal-content">
+    <h3 id="modalName"></h3>
+    <div id="customNameDiv" style="display:none; margin-bottom:8px;">
+      Product Name: <input type="text" id="modalCustomName" placeholder="Enter product name">
+    </div>
+    <div style="margin-bottom:8px;">Price: ₱<input type="number" id="modalPrice" value="0" style="width:110px; display:inline-block; margin-left:6px;"></div>
+    <div class="qty-buttons" style="margin-bottom:10px;">
+      <button onclick="decreaseQty()">-</button>
+      <input type="number" id="modalQty" value="1" style="width:60px; text-align:center;">
+      <button onclick="increaseQty()">+</button>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button style="flex:1;" onclick="modalAddToCart()">Add to Cart</button>
+      <button style="flex:1; background:#f0f0f0; color:var(--muted);" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, addDoc, deleteDoc,
+  doc, updateDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* ===== YOUR FIREBASE CONFIG ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDv0y5aS1ldtZlNfYZ5IsRhGsrSQaX45MA",
+  authDomain: "weartrack-c71ab.firebaseapp.com",
+  projectId: "weartrack-c71ab",
+  storageBucket: "weartrack-c71ab.firebasestorage.app",
+  messagingSenderId: "713165835734",
+  appId: "1:713165835734:web:a0f2e71bd045ffb4f86877"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ---------- GLOBAL ---------- */
+let currentUser = null;
+let cart = [];
+let modalProductIndex = null;
+let currentAdminFilter = 'All';
+let currentCashierCategory = 'Sportswear';
+const fixedCategories = ['Sportswear','Silver','Indu'];
+
+/* ---------- LOGIN ---------- */
+async function login() {
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value.trim();
+  const msg = document.getElementById('loginMsg');
+  if (u === 'Admin' && p === 'admin') {
+    currentUser = { role: 'admin', name: 'admin' };
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('adminPage').classList.remove('hidden');
+    showSection('inventory');
+    await loadInventory();
+    await loadCashiers();
+    await loadSales();
+    msg.innerText = '';
+    return;
+  }
+  const cashiersSnapshot = await getDocs(collection(db, 'cashiers'));
+  const cashiers = cashiersSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  const cashier = cashiers.find(c => c.username === u && c.password === p);
+  if (cashier) {
+    currentUser = { role: 'cashier', name: u };
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('cashierPage').classList.remove('hidden');
+    await loadProducts();
+    await loadDailySales();
+    msg.innerText = '';
+    return;
+  }
+  msg.innerText = 'Invalid credentials';
+}
+
+function logout() {
+  currentUser = null;
+  cart = [];
+  document.getElementById('login').classList.remove('hidden');
+  document.getElementById('adminPage').classList.add('hidden');
+  document.getElementById('cashierPage').classList.add('hidden');
+}
+
+/* ---------- ADMIN ---------- */
+function showSection(id) {
+  ['inventory', 'cashiers', 'salesSummary'].forEach(sec => document.getElementById(sec).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function toggleAddProduct() {
+  document.getElementById('addProductForm').classList.toggle('hidden');
+}
+
+/* ---------- INVENTORY ---------- */
+async function loadInventory() {
+  const productsSnapshot = await getDocs(collection(db, 'products'));
+  const products = productsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  const list = document.getElementById('inventoryList'); list.innerHTML = '';
+  products.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.innerHTML = `<div><strong>${p.name}</strong> (${p.category})<br>₱${p.price} | Stock: ${p.stock}</div>
+                     <button class="delBtn" data-id="${p.id}">Delete</button>`;
+    list.appendChild(div);
+  });
+  document.querySelectorAll('.delBtn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      deleteProduct(this.dataset.id);
+    });
+  });
+}
+
+async function addProduct() {
+  const n = document.getElementById('prodName').value.trim();
+  const c = document.getElementById('prodCat').value;
+  const price = parseFloat(document.getElementById('prodPrice').value);
+  const stock = parseInt(document.getElementById('prodStock').value);
+  if (!n || !c || !price || !stock) return alert('Please fill all required fields!');
+  await addDoc(collection(db, 'products'), { name: n, category: c, price, stock });
+  await loadInventory();
+  if (!document.getElementById('cashierPage').classList.contains('hidden')) await loadProducts();
+  document.getElementById('prodName').value = '';
+  document.getElementById('prodCat').value = '';
+  document.getElementById('prodPrice').value = '';
+  document.getElementById('prodStock').value = '';
+}
+
+async function deleteProduct(id) {
+  if (confirm('Delete this product?')) {
+    await deleteDoc(doc(db, 'products', id));
+    await loadInventory();
+    if (!document.getElementById('cashierPage').classList.contains('hidden')) await loadProducts();
+  }
+}
+
+/* ---------- CASHIERS ---------- */
+async function loadCashiers() {
+  const cashiersSnapshot = await getDocs(collection(db, 'cashiers'));
+  const cashiers = cashiersSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  const list = document.getElementById('cashierList'); list.innerHTML = '';
+  cashiers.forEach((c, i) => {
+    list.innerHTML += `<div>${c.username} <button onclick="editCashier('${c.id}')">Edit</button> <button onclick="deleteCashier('${c.id}')">Delete</button></div>`;
+  });
+}
+
+async function addCashier() {
+  const u = document.getElementById('cashierName').value.trim();
+  const p = document.getElementById('cashierPass').value.trim();
+  if (!u || !p) return alert('Fill all fields');
+  await addDoc(collection(db, 'cashiers'), { username: u, password: p });
+  await loadCashiers();
+  document.getElementById('cashierName').value = '';
+  document.getElementById('cashierPass').value = '';
+}
+
+async function deleteCashier(id) {
+  if (confirm('Delete this cashier?')) {
+    await deleteDoc(doc(db, 'cashiers', id));
+    await loadCashiers();
+  }
+}
+
+async function editCashier(id) {
+  const newName = prompt('New username');
+  const newPass = prompt('New password');
+  if (newName && newPass) {
+    await updateDoc(doc(db, 'cashiers', id), { username: newName, password: newPass });
+    await loadCashiers();
+  }
+}
+
+/* ---------- ADMIN SALES ---------- */
+async function loadSales() {
+  const catBtns = document.getElementById('adminCategoryButtons'); catBtns.innerHTML = '';
+  const allBtn = document.createElement('button'); allBtn.innerText = 'All'; allBtn.onclick = () => filterSales('All'); catBtns.appendChild(allBtn);
+  fixedCategories.forEach(cat => { const btn = document.createElement('button'); btn.innerText = cat; btn.onclick = () => filterSales(cat); catBtns.appendChild(btn); });
+  await filterSales(currentAdminFilter || 'All');
+}
+
+async function filterSales(cat) {
+  currentAdminFilter = cat;
+  const salesSnapshot = await getDocs(collection(db, 'sales'));
+  const sales = salesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  const list = document.getElementById('salesList'); list.innerHTML = '';
+  let grandTotal = 0;
+
+  for (const s of sales) {
+    let filtered = s.products;
+    if (cat !== 'All') filtered = s.products.filter(p => p.category === cat);
+    if (filtered.length === 0) continue;
+
+    const div = document.createElement('div');
+    div.style.borderBottom = '1px solid #e6f7ff';
+    div.style.padding = '8px';
+    div.style.marginBottom = '6px';
+
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+
+    const title = document.createElement('strong');
+    title.innerText = `${s.date}   ${s.cashier}`;
+
+    const delBtn = document.createElement('button');
+    delBtn.innerText = 'X';
+    delBtn.style.background = 'var(--danger)';
+    delBtn.style.color = '#fff';
+    delBtn.onclick = async () => {
+      if (confirm('Delete this transaction?')) {
+        // Increment stock back
+        const productsSnapshot = await getDocs(collection(db, 'products'));
+        const products = productsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        for (const pItem of s.products) {
+          const prod = products.find(pr => pr.name === pItem.name && pr.category === pItem.category);
+          if (prod) {
+            await updateDoc(doc(db, 'products', prod.id), { stock: prod.stock + pItem.qty });
+          }
+        }
+        await deleteDoc(doc(db, 'sales', s.id));
+        await filterSales(currentAdminFilter);
+        if (!document.getElementById('cashierPage').classList.contains('hidden')) await loadProducts();
+      }
+    };
+
+    header.appendChild(title);
+    header.appendChild(delBtn);
+    div.appendChild(header);
+
+    let saleTotal = 0;
+    filtered.forEach(p => {
+      const line = document.createElement('div');
+      line.innerText = `${p.name} (${p.qty}) [${p.category}] ₱${p.qty * p.price}`;
+      div.appendChild(line);
+      saleTotal += (p.qty * p.price);
+    });
+
+    const totalLine = document.createElement('div');
+    totalLine.style.marginTop = '6px';
+    totalLine.style.fontWeight = '700';
+    totalLine.innerText = `Transaction total: ₱${saleTotal}`;
+    div.appendChild(totalLine);
+
+    grandTotal += saleTotal;
+    list.appendChild(div);
+  }
+
+  const totalDiv = document.createElement('div');
+  totalDiv.style.marginTop = '10px';
+  totalDiv.style.fontWeight = '800';
+  totalDiv.innerText = `Total: ₱${grandTotal}`;
+  list.appendChild(totalDiv);
+}
+
+/* ---------- CASHIER ---------- */
+async function loadProducts() {
+  await filterCashierProducts(currentCashierCategory);
+  populateCategoryButtons();
+}
+
+function populateCategoryButtons() {
+  const container = document.getElementById('cashierCategoryButtons');
+  container.innerHTML = '';
+  fixedCategories.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.innerText = cat;
+    btn.onclick = async () => {
+      await filterCashierProducts(cat);
+      currentCashierCategory = cat;
+      Array.from(container.children).forEach(b => b.style.fontWeight = 'normal');
+      btn.style.fontWeight = 'bold';
+    };
+    container.appendChild(btn);
+  });
+  currentCashierCategory = fixedCategories[0];
+  if (container.firstChild) container.firstChild.style.fontWeight = 'bold';
+}
+
+async function filterCashierProducts(category) {
+  const productsSnapshot = await getDocs(collection(db, 'products'));
+  let products = productsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (category) products = products.filter(p => p.category === category);
+  displayCashierProducts(products);
+}
+
+function displayCashierProducts(products) {
+  const grid = document.getElementById('productGrid'); grid.innerHTML = '';
+  products.forEach((p, i) => {
+    grid.innerHTML += `<div class="product" onclick="openModal('${p.id}')"><div><strong>${p.name}</strong></div><div>₱${p.price}</div><div>Stock: ${p.stock}</div></div>`;
+  });
+  grid.innerHTML += `<div class="product" style="background:#f2f6fa;" onclick="openCustomModal()"><div><strong>Custom Transaction</strong></div><div>Tap to add</div></div>`;
+}
+
+/* ---------- MODAL ---------- */
+async function openModal(id) {
+  modalProductIndex = id;
+  document.getElementById('customNameDiv').style.display = 'none';
+  const docRef = doc(db, 'products', id);
+  const docSnap = await getDocs(collection(db, 'products'));
+  const product = (await getDocs(collection(db, 'products'))).docs.find(d => d.id === id).data();
+  document.getElementById('modalName').innerText = product.name;
+  document.getElementById('modalPrice').value = product.price;
+  document.getElementById('modalQty').value = 1;
+  document.getElementById('productModal').style.display = 'flex';
+}
+
+function openCustomModal() {
+  modalProductIndex = null;
+  document.getElementById('customNameDiv').style.display = 'block';
+  document.getElementById('modalName').innerText = 'Custom Transaction';
+  document.getElementById('modalPrice').value = 0;
+  document.getElementById('modalQty').value = 1;
+  document.getElementById('modalCustomName').value = '';
+  document.getElementById('productModal').style.display = 'flex';
+}
+
+function closeModal() { document.getElementById('productModal').style.display = 'none'; }
+function decreaseQty() { const el = document.getElementById('modalQty'); if (parseInt(el.value) > 1) el.value = parseInt(el.value) - 1; }
+function increaseQty() { const el = document.getElementById('modalQty'); el.value = parseInt(el.value) + 1; }
+
+async function modalAddToCart() {
+  const qty = parseInt(document.getElementById('modalQty').value);
+  const price = parseFloat(document.getElementById('modalPrice').value) || 0;
+  let name, category;
+
+  if (modalProductIndex === null) {
+    name = document.getElementById('modalCustomName').value.trim() || 'Custom';
+    category = currentCashierCategory;
+  } else {
+    const docSnap = await getDocs(collection(db, 'products'));
+    const p = docSnap.docs.find(d => d.id === modalProductIndex).data();
+    name = p.name;
+    category = p.category;
+
+    // decrement stock
+    const newStock = p.stock - qty;
+    await updateDoc(doc(db, 'products', modalProductIndex), { stock: newStock >= 0 ? newStock : 0 });
+  }
+
+  cart.push({ name, price, qty, category });
+
+  if (modalProductIndex === null) document.getElementById('modalCustomName').value = '';
+  document.getElementById('modalQty').value = 1;
+  document.getElementById('modalPrice').value = 0;
+  closeModal();
+  renderCart();
+  if (!document.getElementById('cashierPage').classList.contains('hidden')) await loadProducts();
+}
+
+/* ---------- CART ---------- */
+function renderCart() {
+  const table = document.getElementById('cartTable');
+  table.innerHTML = '<tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th>Remove</th></tr>';
+  let total = 0;
+  cart.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    const subtotal = p.qty * p.price;
+    total += subtotal;
+    tr.innerHTML = `<td>${p.name}</td><td>${p.qty}</td><td>${p.price}</td><td>${subtotal}</td><td><button onclick="removeCartItem(${i})">X</button></td>`;
+    table.appendChild(tr);
+  });
+  document.getElementById('cartTotal').innerText = total;
+}
+
+async function removeCartItem(i) {
+  const item = cart[i];
+  if (modalProductIndex !== null && item.name !== 'Custom') {
+    const productsSnapshot = await getDocs(collection(db, 'products'));
+    const prodDoc = productsSnapshot.docs.find(d => d.data().name === item.name && d.data().category === item.category);
+    if (prodDoc) await updateDoc(doc(db, 'products', prodDoc.id), { stock: prodDoc.data().stock + item.qty });
+  }
+  cart.splice(i, 1);
+  renderCart();
+  await loadProducts();
+}
+
+async function checkout() {
+  if (cart.length === 0) return alert('Cart empty');
+  const now = new Date();
+  const productsCopy = JSON.parse(JSON.stringify(cart));
+  let saleTotal = 0;
+  productsCopy.forEach(p => { saleTotal += (p.qty * p.price); });
+  await addDoc(collection(db, 'sales'), { cashier: currentUser.name, date: now.toLocaleString(), products: productsCopy, total: saleTotal });
+  cart = [];
+  renderCart();
+  await loadDailySales();
+  await loadSales();
+  alert('Transaction saved!');
+}
+
+/* ---------- DAILY SALES ---------- */
+async function loadDailySales() {
+  const salesSnapshot = await getDocs(collection(db, 'sales'));
+  const sales = salesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  const list = document.getElementById('dailySalesList'); list.innerHTML = '';
+  const today = new Date().toLocaleDateString();
+  const daily = sales.filter(s => new Date(s.date).toLocaleDateString() === today && s.cashier === currentUser.name);
+
+  let dailyTotal = 0;
+  for (const s of daily) {
+    const div = document.createElement('div');
+    div.style.borderBottom = '1px solid #eaf6ff';
+    div.style.padding = '8px';
+    div.style.marginBottom = '6px';
+
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+
+    const title = document.createElement('strong');
+    title.innerText = `${s.date}   ${s.cashier}`;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'small-x';
+    delBtn.innerText = 'X';
+    delBtn.onclick = async () => {
+      if (confirm('Delete this transaction?')) {
+        // increment stock back
+        const productsSnapshot = await getDocs(collection(db, 'products'));
+        const products = productsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        for (const pItem of s.products) {
+          const prod = products.find(pr => pr.name === pItem.name && pr.category === pItem.category);
+          if (prod) await updateDoc(doc(db, 'products', prod.id), { stock: prod.stock + pItem.qty });
+        }
+        await deleteDoc(doc(db, 'sales', s.id));
+        await loadDailySales();
+        await loadSales();
+        await loadProducts();
+      }
+    };
+
+    header.appendChild(title);
+    header.appendChild(delBtn);
+    div.appendChild(header);
+
+    let saleTotal = 0;
+    s.products.forEach(p => {
+      const pdiv = document.createElement('div');
+      pdiv.innerText = `${p.name} (${p.qty}) [${p.category}] ₱${p.qty * p.price}`;
+      div.appendChild(pdiv);
+      saleTotal += (p.qty * p.price);
+    });
+
+    const totLine = document.createElement('div');
+    totLine.style.fontWeight = '700';
+    totLine.style.marginTop = '6px';
+    totLine.innerText = `Transaction total: ₱${saleTotal}`;
+    div.appendChild(totLine);
+
+    dailyTotal += saleTotal;
+    list.appendChild(div);
+  }
+
+  const totalDiv = document.createElement('div');
+  totalDiv.style.marginTop = '8px';
+  totalDiv.style.fontWeight = '800';
+  totalDiv.innerText = `Daily Total: ₱${dailyTotal}`;
+  list.appendChild(totalDiv);
+}
+
+/* ---------- INIT ---------- */
+(async function initOnLoad() {
+  // Firestore collections auto-created; nothing needed here
+})();
+
+// Expose functions to global scope for HTML onclick
+window.login = login;
+window.logout = logout;
+window.showSection = showSection;
+window.toggleAddProduct = toggleAddProduct;
+window.addProduct = addProduct;
+window.addCashier = addCashier;
+window.deleteCashier = deleteCashier;
+window.editCashier = editCashier;
+window.openModal = openModal;
+window.openCustomModal = openCustomModal;
+window.closeModal = closeModal;
+window.decreaseQty = decreaseQty;
+window.increaseQty = increaseQty;
+window.modalAddToCart = modalAddToCart;
+window.removeCartItem = removeCartItem;
+window.checkout = checkout;
+</script>
+
+</body>
+</html>
+
+
+
+
+
