@@ -88,6 +88,23 @@ input, select {
 #dailySalesList div, #salesList div { background:var(--card); padding:10px; border-radius:8px; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
 .small-x { background:var(--danger); color:white; border-radius:50%; width:26px; height:26px; font-weight:bold; border:none; cursor:pointer; }
 
+#cashierCategoryButtons button {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
+#cashierCategoryButtons button:hover {
+  background: var(--accent-ghost);
+}
+
+#cashierCategoryButtons button.active-cat {
+  background: var(--primary-dark);
+  color: white;
+  border-color: var(--primary-dark);
+}
+
 /* ---------- RESPONSIVE ---------- */
 @media(max-width:900px){
  #pos { flex-direction:column; gap:10px; }
@@ -437,27 +454,44 @@ async function filterSales(cat) {
 
 /* ---------- CASHIER ---------- */
 async function loadProducts() {
-  await filterCashierProducts(currentCashierCategory);
-  populateCategoryButtons();
+  await populateCategoryButtons();                // draw buttons first
+  await filterCashierProducts(currentCashierCategory);  // keep current category
 }
+
 
 function populateCategoryButtons() {
   const container = document.getElementById('cashierCategoryButtons');
   container.innerHTML = '';
+
   fixedCategories.forEach(cat => {
     const btn = document.createElement('button');
     btn.innerText = cat;
+    btn.className = 'cat-btn';
+
+    if (cat === currentCashierCategory) {
+      btn.classList.add('active-cat');
+    }
+
     btn.onclick = async () => {
-      await filterCashierProducts(cat);
       currentCashierCategory = cat;
-      Array.from(container.children).forEach(b => b.style.fontWeight = 'normal');
-      btn.style.fontWeight = 'bold';
+      await filterCashierProducts(cat);
+      highlightActiveCategory();
     };
+
     container.appendChild(btn);
   });
-  currentCashierCategory = fixedCategories[0];
-  if (container.firstChild) container.firstChild.style.fontWeight = 'bold';
 }
+function highlightActiveCategory() {
+  const buttons = document.querySelectorAll('#cashierCategoryButtons button');
+  buttons.forEach(btn => {
+    if (btn.innerText === currentCashierCategory) {
+      btn.classList.add('active-cat');
+    } else {
+      btn.classList.remove('active-cat');
+    }
+  });
+}
+
 
 async function filterCashierProducts(category) {
   const productsSnapshot = await getDocs(collection(db, 'products'));
@@ -527,7 +561,11 @@ async function modalAddToCart() {
   document.getElementById('modalPrice').value = 0;
   closeModal();
   renderCart();
-  if (!document.getElementById('cashierPage').classList.contains('hidden')) await loadProducts();
+  if (!document.getElementById('cashierPage').classList.contains('hidden')) {
+  await filterCashierProducts(currentCashierCategory);
+  highlightActiveCategory();
+}
+
 }
 
 /* ---------- CART ---------- */
