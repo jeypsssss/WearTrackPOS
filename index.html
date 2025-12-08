@@ -380,7 +380,11 @@ async function loadSales() {
 async function filterSales(cat) {
   currentAdminFilter = cat;
   const salesSnapshot = await getDocs(collection(db, 'sales'));
-  const sales = salesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  let sales = salesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+// ✅ SORT BY DATE (NEWEST FIRST)
+sales.sort((a, b) => new Date(b.date) - new Date(a.date));
+
   const list = document.getElementById('salesList'); list.innerHTML = '';
   let grandTotal = 0;
 
@@ -612,7 +616,11 @@ async function checkout() {
 /* ---------- DAILY SALES ---------- */
 async function loadDailySales() {
   const salesSnapshot = await getDocs(collection(db, 'sales'));
-  const sales = salesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  let sales = salesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+// ✅ SORT BY DATE (NEWEST FIRST)
+sales.sort((a, b) => new Date(b.date) - new Date(a.date));
+
   const list = document.getElementById('dailySalesList'); list.innerHTML = '';
   const today = new Date().toLocaleDateString();
   const daily = sales.filter(s => new Date(s.date).toLocaleDateString() === today && s.cashier === currentUser.name);
@@ -725,7 +733,6 @@ window.modalAddToCart = modalAddToCart;
 window.removeCartItem = removeCartItem;
 window.checkout = checkout;
 </script>
-
 </body>
 </html>
 
