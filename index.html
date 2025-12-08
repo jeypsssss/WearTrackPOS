@@ -227,6 +227,8 @@ async function login() {
   const msg = document.getElementById('loginMsg');
   if (u === 'Admin' && p === 'admin') {
     currentUser = { role: 'admin', name: 'admin' };
+localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+
     document.getElementById('login').classList.add('hidden');
     document.getElementById('adminPage').classList.remove('hidden');
     showSection('inventory');
@@ -241,6 +243,8 @@ async function login() {
   const cashier = cashiers.find(c => c.username === u && c.password === p);
   if (cashier) {
     currentUser = { role: 'cashier', name: u };
+localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+
     document.getElementById('login').classList.add('hidden');
     document.getElementById('cashierPage').classList.remove('hidden');
     await loadProducts();
@@ -254,10 +258,12 @@ async function login() {
 function logout() {
   currentUser = null;
   cart = [];
+  localStorage.removeItem('loggedInUser');
   document.getElementById('login').classList.remove('hidden');
   document.getElementById('adminPage').classList.add('hidden');
   document.getElementById('cashierPage').classList.add('hidden');
 }
+
 
 /* ---------- ADMIN ---------- */
 function showSection(id) {
@@ -640,6 +646,28 @@ async function loadDailySales() {
 (async function initOnLoad() {
   // Firestore collections auto-created; nothing needed here
 })();
+document.addEventListener('DOMContentLoaded', async () => {
+  const savedUser = localStorage.getItem('loggedInUser');
+  if (!savedUser) return;
+
+  currentUser = JSON.parse(savedUser);
+
+  if (currentUser.role === 'admin') {
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('adminPage').classList.remove('hidden');
+    showSection('inventory');
+    await loadInventory();
+    await loadCashiers();
+    await loadSales();
+  }
+
+  if (currentUser.role === 'cashier') {
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('cashierPage').classList.remove('hidden');
+    await loadProducts();
+    await loadDailySales();
+  }
+});
 
 // Expose functions to global scope for HTML onclick
 window.login = login;
