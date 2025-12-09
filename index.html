@@ -165,7 +165,9 @@ input, select {
 </select>
 
 <div id="adminCategoryButtons"></div>
+<div id="adminGrandTotal" style="font-weight:800; margin:20px 0;">Total: ₱0</div>
 <div id="salesList"></div>
+
 
   </div>
 </div>
@@ -188,10 +190,16 @@ input, select {
       <button onclick="checkout()">Checkout</button>
     </div>
   </div>
-  <div id="dailySummary" class="section">
+  <!--<div id="dailySummary" class="section">
     <h3>Daily Sales</h3>
     <div id="dailySalesList"></div>
-  </div>
+  </div>-->
+  <div id="dailySummary" class="section">
+     <h3>Daily Sales</h3>
+     <div id="dailyTotalBox" style="font-weight:800; margin:20px 0;">Daily Total: ₱0</div>
+     <div id="dailySalesList"></div>
+   </div>
+
 </div>
 
 <!-- MODAL -->
@@ -505,11 +513,8 @@ if (cat !== 'All') {
     list.appendChild(div);
   }
 
-  const totalDiv = document.createElement('div');
-  totalDiv.style.marginTop = '10px';
-  totalDiv.style.fontWeight = '800';
-  totalDiv.innerText = `Total: ₱${grandTotal}`;
-  list.appendChild(totalDiv);
+   document.getElementById('adminGrandTotal').innerText = `Total: ₱${grandTotal}`;
+
 }
 
 /* ---------- CASHIER ---------- */
@@ -678,6 +683,7 @@ async function loadDailySales() {
 sales.sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const list = document.getElementById('dailySalesList'); list.innerHTML = '';
+  document.getElementById('dailyTotalBox').innerText = 'Daily Total: ₱0';
   const today = new Date().toLocaleDateString();
   const daily = sales.filter(s => new Date(s.date).toLocaleDateString() === today && s.cashier === currentUser.name);
 
@@ -737,11 +743,10 @@ sales.sort((a, b) => new Date(b.date) - new Date(a.date));
     list.appendChild(div);
   }
 
-  const totalDiv = document.createElement('div');
-  totalDiv.style.marginTop = '8px';
-  totalDiv.style.fontWeight = '800';
-  totalDiv.innerText = `Daily Total: ₱${dailyTotal}`;
-  list.appendChild(totalDiv);
+  
+  
+  document.getElementById('dailyTotalBox').innerText = `Daily Total: ₱${dailyTotal}`;
+
 }
 
 /* ---------- INIT ---------- */
