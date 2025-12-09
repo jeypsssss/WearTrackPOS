@@ -154,7 +154,7 @@ input, select {
     <h3>Cashiers</h3>
     <input type="text" id="cashierName" placeholder="Cashier Username">
     <input type="password" id="cashierPass" placeholder="Password">
-    <button onclick="addCashier()">Add Cashier</button>
+    <button onclick="addCashier()" style="margin-bottom:10px; height:40px; width:100%">Add Cashier</button>
     <div id="cashierList"></div>
   </div>
 
@@ -174,10 +174,14 @@ input, select {
 
 <!-- CASHIER PAGE -->
 <div id="cashierPage" class="container hidden">
-  <div id="cashierHeader" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-    <h2>Cashier POS</h2>
-    <button onclick="logout()">Logout</button>
-  </div>
+<div id="cashierHeader" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+  <h2>Cashier POS</h2>
+  <div style="display:flex; gap:8px;">
+    <button onclick="openSalesHistory()">Sales History</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</div>
+
   <div id="cashierCategoryButtons"></div>
   <div id="pos">
     <div id="productGrid"></div>
@@ -201,6 +205,47 @@ input, select {
    </div>
 
 </div>
+
+<!-- SALES HISTORY MODAL -->
+<div id="salesHistoryModal" class="modal">
+  <div class="modal-content" style="max-width:800px;">
+    <h3 style="text-align:center;">Sales History</h3>
+
+    <div style="display:flex; gap:10px; margin-bottom:10px;">
+      <div style="flex:1;">
+        <label>From:</label>
+        <select id="historyDateFrom"></select>
+      </div>
+      <div style="flex:1;">
+        <label>To:</label>
+        <select id="historyDateTo"></select>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table id="historyTable" style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="background:#dff1ff;">
+            <th style="padding:8px;border:1px solid #cfe9ff;">Date</th>
+            <th style="padding:8px;border:1px solid #cfe9ff;">Silver</th>
+            <th style="padding:8px;border:1px solid #cfe9ff;">Sportswear</th>
+            <th style="padding:8px;border:1px solid #cfe9ff;">Indu</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="historyTotals" style="margin-top:12px; font-weight:700;">
+      Total: ₱0 | Grand Total: ₱0
+    </div>
+
+    <div style="margin-top:12px; text-align:right;">
+      <button onclick="closeSalesHistory()">Close</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- MODAL -->
 <div id="productModal" class="modal">
@@ -749,6 +794,126 @@ sales.sort((a, b) => new Date(b.date) - new Date(a.date));
 
 }
 
+async function openSalesHistory() {
+  document.getElementById('salesHistoryModal').style.display = 'flex';
+  await buildSalesHistory();
+}
+
+function closeSalesHistory() {
+  document.getElementById('salesHistoryModal').style.display = 'none';
+}
+
+async function buildSalesHistory() {
+  const snap = await getDocs(collection(db, 'sales'));
+  const sales = snap.docs
+    .map(d => d.data())
+    .filter(s => s.cashier === currentUser.name);
+
+  const fromSel = document.getElementById('historyDateFrom');
+  const toSel = document.getElementById('historyDateTo');
+  const tbody = document.querySelector('#historyTable tbody');
+  const totalsBox = document.getElementById('historyTotals');
+
+  tbody.innerHTML = '';
+
+  // ✅ Create unique date list FIRST
+  const dates = [...new Set(
+    sales.map(s => new Date(s.date).toLocaleDateString())
+  )].sort((a,b)=> new Date(a) - new Date(b));
+
+  if (dates.length === 0) {
+    totalsBox.innerText = 'No sales data';
+    return;
+  }
+
+  // ✅ Fill dropdowns only once
+  if (!fromSel.dataset.filled) {
+    fromSel.innerHTML = '';
+    toSel.innerHTML = '';
+
+    dates.forEach(d => {
+      const opt1 = document.createElement('option');
+      opt1.value = d;
+      opt1.innerText = d;
+
+      const opt2 = opt1.cloneNode(true);
+      fromSel.appendChild(opt1);
+      toSel.appendChild(opt2);
+    });
+
+    fromSel.value = dates[0];
+    toSel.value   = dates[dates.length - 1];
+
+    fromSel.dataset.filled = 'true';
+
+    // ✅ Attach change events once
+    fromSel.onchange = buildSalesHistory;
+    toSel.onchange   = buildSalesHistory;
+  }
+
+  const fromDate = new Date(fromSel.value);
+  const toDate   = new Date(toSel.value);
+  toDate.setHours(23, 59, 59, 999);
+
+  const map = {};
+  let grandTotal = 0;
+  let totSilver = 0, totSport = 0, totIndu = 0;
+
+  sales.forEach(s => {
+    const d = new Date(s.date);
+    const key = d.toLocaleDateString();
+
+    if (d < fromDate || d > toDate) return;
+
+    if (!map[key]) {
+      map[key] = { Silver: 0, Sportswear: 0, Indu: 0 };
+    }
+
+    s.products.forEach(p => {
+      if (map[key][p.category] !== undefined) {
+        const val = p.qty * p.price;
+        map[key][p.category] += val;
+      }
+    });
+  });
+
+  Object.keys(map).sort((a,b)=> new Date(a)-new Date(b)).forEach(date => {
+    const silver = map[date].Silver;
+    const sport = map[date].Sportswear;
+    const indu  = map[date].Indu;
+    const rowTotal = silver + sport + indu;
+
+    totSilver += silver;
+    totSport  += sport;
+    totIndu   += indu;
+    grandTotal += rowTotal;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td style="padding:8px;border:1px solid #cfe9ff;">${date}</td>
+      <td style="padding:8px;border:1px solid #cfe9ff;">${silver}</td>
+      <td style="padding:8px;border:1px solid #cfe9ff;">${sport}</td>
+      <td style="padding:8px;border:1px solid #cfe9ff;">${indu}</td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  // ✅ Totals row
+  const totalRow = document.createElement('tr');
+  totalRow.style.fontWeight = 'bold';
+  totalRow.innerHTML = `
+    <td style="padding:8px;border:1px solid #cfe9ff;">Total</td>
+    <td style="padding:8px;border:1px solid #cfe9ff;">${totSilver}</td>
+    <td style="padding:8px;border:1px solid #cfe9ff;">${totSport}</td>
+    <td style="padding:8px;border:1px solid #cfe9ff;">${totIndu}</td>
+  `;
+  tbody.appendChild(totalRow);
+
+  totalsBox.innerText = `Grand Total: ₱${grandTotal}`;
+}
+
+
+
 /* ---------- INIT ---------- */
 (async function initOnLoad() {
   // Firestore collections auto-created; nothing needed here
@@ -800,11 +965,8 @@ window.increaseQty = increaseQty;
 window.modalAddToCart = modalAddToCart;
 window.removeCartItem = removeCartItem;
 window.checkout = checkout;
+window.openSalesHistory = openSalesHistory;
+window.closeSalesHistory = closeSalesHistory;
 </script>
 </body>
 </html>
-
-
-
-
-
