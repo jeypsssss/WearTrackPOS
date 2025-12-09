@@ -86,7 +86,7 @@ input, select {
 
 /* ---------- DAILY SALES ---------- */
 #dailySalesList div, #salesList div { background:var(--card); padding:10px; border-radius:8px; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
-.small-x { background:var(--danger); color:white; border-radius:50%; width:26px; height:26px; font-weight:bold; border:none; cursor:pointer; }
+.small-x { display:flex; align-items:center; justify-content:center; background:var(--danger); color:white; border-radius:25%; width:26px; height:26px; font-weight:bold; border:none; cursor:pointer; }
 
 #cashierCategoryButtons button {
   background: transparent;
@@ -191,13 +191,10 @@ input, select {
         <tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th>Remove</th></tr>
       </table>
       <p style="font-weight:700; margin-top:8px;">Total: ₱<span id="cartTotal">0</span></p>
-      <button onclick="checkout()">Checkout</button>
+      <button onclick="checkout()" style="height:50px">Checkout</button>
     </div>
   </div>
-  <!--<div id="dailySummary" class="section">
-    <h3>Daily Sales</h3>
-    <div id="dailySalesList"></div>
-  </div>-->
+  
   <div id="dailySummary" class="section">
      <h3>Daily Sales</h3>
      <div id="dailyTotalBox" style="font-weight:800; margin:20px 0;">Daily Total: ₱0</div>
@@ -236,9 +233,16 @@ input, select {
       </table>
     </div>
 
-    <div id="historyTotals" style="margin-top:12px; font-weight:700;">
-      Total: ₱0 | Grand Total: ₱0
-    </div>
+    <div style="margin-top:12px;">
+  <button onclick="addExpense()">+ Add Expense</button>
+</div>
+
+<div id="expenseList" style="margin-top:10px;"></div>
+
+<div id="historyTotals" style="margin-top:12px; font-weight:700;">
+  Total: ₱0 | Grand Total: ₱0
+</div>
+
 
     <div style="margin-top:12px; text-align:right;">
       <button onclick="closeSalesHistory()">Close</button>
@@ -419,6 +423,23 @@ async function deleteCashier(id) {
   }
 }
 
+async function addExpense() {
+  const desc = prompt('Enter expense description');
+  if (!desc) return;
+
+  const amt = parseFloat(prompt('Enter amount'));
+  if (!amt || amt <= 0) return alert('Invalid amount');
+
+  await addDoc(collection(db, 'expenses'), {
+    cashier: currentUser.name,
+    description: desc,
+    amount: amt,
+    date: new Date().toLocaleString()
+  });
+
+  await buildSalesHistory();
+}
+
 async function editCashier(id) {
   const newName = prompt('New username');
   const newPass = prompt('New password');
@@ -435,6 +456,7 @@ async function editCashier(id) {
   fixedCategories.forEach(cat => { const btn = document.createElement('button'); btn.innerText = cat; btn.onclick = () => filterSales(cat); catBtns.appendChild(btn); });
   await filterSales(currentAdminFilter || 'All');
 }*/
+
 
 async function loadSales() {
   const catBtns = document.getElementById('adminCategoryButtons');
@@ -909,7 +931,50 @@ async function buildSalesHistory() {
   `;
   tbody.appendChild(totalRow);
 
-  totalsBox.innerText = `Grand Total: ₱${grandTotal}`;
+// Load Expenses
+const expenseSnap = await getDocs(collection(db, 'expenses'));
+const expenses = expenseSnap.docs
+  .map(d => ({ id: d.id, ...d.data() }))
+  .filter(e => e.cashier === currentUser.name);
+
+const expenseListDiv = document.getElementById('expenseList');
+expenseListDiv.innerHTML = '';
+let totalExpenses = 0;
+
+expenses.forEach(e => {
+  const div = document.createElement('div');
+  div.style.padding = '6px';
+  div.style.borderBottom = '1px solid #e6f7ff';
+  div.style.display = 'flex';
+  div.style.justifyContent = 'space-between';
+  div.style.alignItems = 'center';
+
+  const text = document.createElement('span');
+  text.innerText = `${e.description}: ₱${e.amount}`;
+  div.appendChild(text);
+
+  const delBtn = document.createElement('button');
+  delBtn.innerText = 'X';
+  delBtn.style.background = 'var(--danger)';
+  delBtn.style.color = '#fff';
+  delBtn.style.border = 'none';
+  delBtn.style.borderRadius = '4px';
+  delBtn.style.padding = '2px 6px';
+  delBtn.style.cursor = 'pointer';
+  delBtn.onclick = async () => {
+    if (confirm('Delete this expense?')) {
+      await deleteDoc(doc(db, 'expenses', e.id));
+      await buildSalesHistory();
+    }
+  };
+  div.appendChild(delBtn);
+
+  expenseListDiv.appendChild(div);
+  totalExpenses += e.amount;
+});
+
+// ✅ Final totals
+totalsBox.innerText = `Grand Total: ₱${grandTotal}\nExpenses: ₱${totalExpenses}\nNet: ₱${grandTotal - totalExpenses}`;
 }
 
 
@@ -967,6 +1032,7 @@ window.removeCartItem = removeCartItem;
 window.checkout = checkout;
 window.openSalesHistory = openSalesHistory;
 window.closeSalesHistory = closeSalesHistory;
+window.addExpense = addExpense;
 </script>
 </body>
 </html>
