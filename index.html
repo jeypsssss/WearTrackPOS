@@ -160,8 +160,13 @@ input, select {
 
   <div id="salesSummary" class="hidden section">
     <h3>Sales Summary</h3>
-    <div id="adminCategoryButtons"></div>
-    <div id="salesList"></div>
+    <select id="adminDateFilter" style="width:100%; margin-bottom:10px;" onchange="filterSalesByDate()">
+  <option value="All">All Dates</option>
+</select>
+
+<div id="adminCategoryButtons"></div>
+<div id="salesList"></div>
+
   </div>
 </div>
 
@@ -234,6 +239,7 @@ let currentUser = null;
 let cart = [];
 let modalProductIndex = null;
 let currentAdminFilter = 'All';
+let currentAdminDate = 'All';
 let currentCashierCategory = 'Sportswear';
 const fixedCategories = ['Sportswear','Silver','Indu'];
 
@@ -370,12 +376,52 @@ async function editCashier(id) {
 }
 
 /* ---------- ADMIN SALES ---------- */
-async function loadSales() {
+/*async function loadSales() {
   const catBtns = document.getElementById('adminCategoryButtons'); catBtns.innerHTML = '';
   const allBtn = document.createElement('button'); allBtn.innerText = 'All'; allBtn.onclick = () => filterSales('All'); catBtns.appendChild(allBtn);
   fixedCategories.forEach(cat => { const btn = document.createElement('button'); btn.innerText = cat; btn.onclick = () => filterSales(cat); catBtns.appendChild(btn); });
   await filterSales(currentAdminFilter || 'All');
+}*/
+
+async function loadSales() {
+  const catBtns = document.getElementById('adminCategoryButtons');
+  const dateSelect = document.getElementById('adminDateFilter');
+
+  catBtns.innerHTML = '';
+  dateSelect.innerHTML = '<option value="All">All Dates</option>';
+
+  const allBtn = document.createElement('button');
+  allBtn.innerText = 'All';
+  allBtn.onclick = () => filterSales('All');
+  catBtns.appendChild(allBtn);
+
+  fixedCategories.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.innerText = cat;
+    btn.onclick = () => filterSales(cat);
+    catBtns.appendChild(btn);
+  });
+
+  // ✅ Build Date Dropdown
+  const salesSnapshot = await getDocs(collection(db, 'sales'));
+  const sales = salesSnapshot.docs.map(d => d.data());
+
+  const uniqueDates = [...new Set(
+    sales.map(s => new Date(s.date).toLocaleDateString())
+  )];
+
+  uniqueDates.sort((a, b) => new Date(b) - new Date(a));
+
+  uniqueDates.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d;
+    opt.innerText = d;
+    dateSelect.appendChild(opt);
+  });
+
+  await filterSales(currentAdminFilter);
 }
+
 
 async function filterSales(cat) {
   currentAdminFilter = cat;
@@ -389,8 +435,18 @@ sales.sort((a, b) => new Date(b.date) - new Date(a.date));
   let grandTotal = 0;
 
   for (const s of sales) {
-    let filtered = s.products;
-    if (cat !== 'All') filtered = s.products.filter(p => p.category === cat);
+    // ✅ Filter by DATE
+if (currentAdminDate !== 'All') {
+  const saleDate = new Date(s.date).toLocaleDateString();
+  if (saleDate !== currentAdminDate) continue;
+}
+
+// ✅ Filter by CATEGORY
+let filtered = s.products;
+if (cat !== 'All') {
+  filtered = s.products.filter(p => p.category === cat);
+}
+
     if (filtered.length === 0) continue;
 
     const div = document.createElement('div');
@@ -458,8 +514,8 @@ sales.sort((a, b) => new Date(b.date) - new Date(a.date));
 
 /* ---------- CASHIER ---------- */
 async function loadProducts() {
-  await populateCategoryButtons();                // draw buttons first
   await filterCashierProducts(currentCashierCategory);  // keep current category
+  await populateCategoryButtons();                // draw buttons first
 }
 
 
@@ -714,6 +770,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadDailySales();
   }
 });
+
+window.filterSalesByDate = async function () {
+  const select = document.getElementById('adminDateFilter');
+  currentAdminDate = select.value;
+  await filterSales(currentAdminFilter);
+};
+
 
 // Expose functions to global scope for HTML onclick
 window.login = login;
