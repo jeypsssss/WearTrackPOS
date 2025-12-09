@@ -55,7 +55,7 @@ input, select {
 #pos { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; align-items:flex-start; }
 #productGrid {
  display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
- gap:12px; flex:2; max-height:640px; overflow-y:auto; padding-right:6px;
+ gap:12px; flex:2; max-height:640px; overflow-y:auto; padding-right:6px; ;
 }
 .product {
   background:var(--card); border-radius:10px;
@@ -109,8 +109,54 @@ input, select {
 @media(max-width:900px){
  #pos { flex-direction:column; gap:10px; }
  #productGrid { max-height:none; width:100%; }
- #cart { max-height:none; width:100%; margin-top:10px; }
+ #cart { max-height:none; width:100%; margin-top:10px;}
 }
+
+@media(max-width:450px){
+   .cashier-text{font-size:17px;}
+}
+
+/* Custom Transaction Card */
+.custom-product {
+  background: var(--card);
+}
+
+/* Dark theme support */
+body.dark-theme .custom-product {
+  background: var(--card);
+}
+
+body.dark-theme  {
+  --bg: #121212;
+  --card: #1e1e1e;
+  --primary: #4a90e2;
+  --primary-dark: #357ab7;
+  --muted: #8e8e8e;
+  --danger: #ff6b6b;
+  --accent-ghost: #2a2a2a;
+  color: var(--muted);
+  background: var(--bg);
+}
+
+body.dark-theme input,
+body.dark-theme select {
+  background: #2a2a2a;
+  color: #fff;
+  border: 1px solid #444;
+}
+
+body.dark-theme button {
+  color: white;
+}
+
+body.dark-theme #cart,
+body.dark-theme #productGrid div,
+body.dark-theme #inventoryList div,
+body.dark-theme #cashierList div {
+  background: var(--card);
+  color: var(--muted);
+}
+
 </style>
 </head>
 <body>
@@ -126,11 +172,14 @@ input, select {
 
 <!-- ADMIN PAGE -->
 <div id="adminPage" class="container hidden">
- <h2>Admin Dashboard</h2>
+   <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>Admin Dashboard</h2>
+   </div>
  <button onclick="showSection('inventory')">Inventory</button>
  <button onclick="showSection('cashiers')">Cashiers</button>
  <button onclick="showSection('salesSummary')">Sales Summary</button>
  <button onclick="logout()">Logout</button>
+
 
  <div id="inventory" class="hidden section">
    <h3>Inventory</h3>
@@ -175,9 +224,10 @@ input, select {
 <!-- CASHIER PAGE -->
 <div id="cashierPage" class="container hidden">
 <div id="cashierHeader" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-  <h2>Cashier POS</h2>
-  <div style="display:flex; gap:8px;">
+  <h2 class="cashier-text">Cashier POS</h2>
+  <div class="lag" style="display:flex; gap:5px;">
     <button onclick="openSalesHistory()">Sales History</button>
+     <button id="themeToggle"> Dark Mode</button>
     <button onclick="logout()">Logout</button>
   </div>
 </div>
@@ -252,7 +302,7 @@ input, select {
 
 
 <!-- MODAL -->
-<div id="productModal" class="modal">
+<div id="productModal" class="modal" >
   <div class="modal-content">
     <h3 id="modalName"></h3>
     <div id="customNameDiv" style="display:none; margin-bottom:8px;">
@@ -423,12 +473,19 @@ async function deleteCashier(id) {
   }
 }
 
+
+
 async function addExpense() {
   const desc = prompt('Enter expense description');
   if (!desc) return;
 
-  const amt = parseFloat(prompt('Enter amount'));
-  if (!amt || amt <= 0) return alert('Invalid amount');
+  let amt = prompt('Enter amount (numbers only)');
+  if (amt === null) return; // canceled
+  amt = parseFloat(amt);
+  
+  if (isNaN(amt) || amt <= 0) {
+    return alert('Invalid amount! Please enter a number greater than 0.');
+  }
 
   await addDoc(collection(db, 'expenses'), {
     cashier: currentUser.name,
@@ -440,6 +497,7 @@ async function addExpense() {
   await buildSalesHistory();
 }
 
+
 async function editCashier(id) {
   const newName = prompt('New username');
   const newPass = prompt('New password');
@@ -450,14 +508,6 @@ async function editCashier(id) {
 }
 
 /* ---------- ADMIN SALES ---------- */
-/*async function loadSales() {
-  const catBtns = document.getElementById('adminCategoryButtons'); catBtns.innerHTML = '';
-  const allBtn = document.createElement('button'); allBtn.innerText = 'All'; allBtn.onclick = () => filterSales('All'); catBtns.appendChild(allBtn);
-  fixedCategories.forEach(cat => { const btn = document.createElement('button'); btn.innerText = cat; btn.onclick = () => filterSales(cat); catBtns.appendChild(btn); });
-  await filterSales(currentAdminFilter || 'All');
-}*/
-
-
 async function loadSales() {
   const catBtns = document.getElementById('adminCategoryButtons');
   const dateSelect = document.getElementById('adminDateFilter');
@@ -637,7 +687,7 @@ function displayCashierProducts(products) {
   products.forEach((p, i) => {
     grid.innerHTML += `<div class="product" onclick="openModal('${p.id}')"><div><strong>${p.name}</strong></div><div>₱${p.price}</div><div>Stock: ${p.stock}</div></div>`;
   });
-  grid.innerHTML += `<div class="product" style="background:#f2f6fa;" onclick="openCustomModal()"><div><strong>Custom Transaction</strong></div><div>Tap to add</div></div>`;
+  grid.innerHTML += `<div class="product custom-product"  onclick="openCustomModal()"><div><strong>Custom Transaction</strong></div><div>Tap to add</div></div>`;
 }
 
 /* ---------- MODAL ---------- */
@@ -1011,6 +1061,26 @@ window.filterSalesByDate = async function () {
   currentAdminDate = select.value;
   await filterSales(currentAdminFilter);
 };
+const themeToggle = document.getElementById('themeToggle');
+
+ themeToggle.addEventListener('click', () => {
+  document.body.classList.toggle('dark-theme');
+  
+  if(document.body.classList.contains('dark-theme')) {
+    themeToggle.innerText = 'Light Mode';
+    localStorage.setItem('theme', 'dark');
+  } else {
+    themeToggle.innerText = 'Dark Mode';
+    localStorage.setItem('theme', 'light');
+  }
+});
+
+// ✅ Load saved theme on page load
+const savedTheme = localStorage.getItem('theme');
+if(savedTheme === 'dark') {
+  document.body.classList.add('dark-theme');
+  themeToggle.innerText = 'Light Mode';
+}
 
 
 // Expose functions to global scope for HTML onclick
