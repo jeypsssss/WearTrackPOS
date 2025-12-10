@@ -417,6 +417,8 @@ const db = getFirestore(app);
 let currentUser = null;
 let cart = [];
 let modalProductIndex = null;
+let isAddingToCart = false;
+let isRemovingItem = {};
 let currentAdminFilter = 'All';
 let currentAdminDate = 'All';
 let currentCashierCategory = 'Sportswear';
@@ -856,42 +858,60 @@ function decreaseQty() { const el = document.getElementById('modalQty'); if (par
 function increaseQty() { const el = document.getElementById('modalQty'); el.value = parseInt(el.value) + 1; }
 
 async function modalAddToCart() {
-  const qty = parseInt(document.getElementById('modalQty').value);
-  const price = parseFloat(document.getElementById('modalPrice').value) || 0;
-  let name, category;
+  if (isAddingToCart) return;   // 🚫 block spam clicks
+  isAddingToCart = true;
 
-  if (modalProductIndex === null) {
-    name = document.getElementById('modalCustomName').value.trim() || 'Custom';
-    category = currentCashierCategory;
-  } else {
-    const docSnap = await getDocs(collection(db, 'products'));
-    const p = docSnap.docs.find(d => d.id === modalProductIndex).data();
-    name = p.name;
-    category = p.category;
-   
-   if (p.stock < qty) {
-  alert('Not enough stock!');
-  return;
-   }
-   
-    // decrement stock
-    const newStock = p.stock - qty;
-    await updateDoc(doc(db, 'products', modalProductIndex), { stock: newStock >= 0 ? newStock : 0 });
+  const addBtn = document.querySelector('#productModal button');
+  addBtn.disabled = true;
+
+  try {
+    const qty = parseInt(document.getElementById('modalQty').value);
+    const price = parseFloat(document.getElementById('modalPrice').value) || 0;
+    let name, category;
+
+    if (modalProductIndex === null) {
+      name = document.getElementById('modalCustomName').value.trim() || 'Custom';
+      category = currentCashierCategory;
+    } else {
+      const productRef = doc(db, 'products', modalProductIndex);
+      const snapshot = await getDocs(collection(db, 'products'));
+      const productDoc = snapshot.docs.find(d => d.id === modalProductIndex);
+      const product = productDoc.data();
+
+      if (product.stock < qty) {
+        alert('Not enough stock!');
+        return;
+      }
+
+      // ✅ SAFE STOCK DECREMENT
+      await updateDoc(productRef, {
+        stock: product.stock - qty
+      });
+
+      name = product.name;
+      category = product.category;
+    }
+
+    cart.push({ name, price, qty, category });
+    renderCart();
+
+    // reset modal
+    document.getElementById('modalQty').value = 1;
+    document.getElementById('modalPrice').value = 0;
+    document.getElementById('modalCustomName').value = '';
+    closeModal();
+
+    if (!document.getElementById('cashierPage').classList.contains('hidden')) {
+      await filterCashierProducts(currentCashierCategory);
+      highlightActiveCategory();
+    }
+
+  } finally {
+    isAddingToCart = false;
+    addBtn.disabled = false;
   }
-
-  cart.push({ name, price, qty, category });
-
-  if (modalProductIndex === null) document.getElementById('modalCustomName').value = '';
-  document.getElementById('modalQty').value = 1;
-  document.getElementById('modalPrice').value = 0;
-  closeModal();
-  renderCart();
-  if (!document.getElementById('cashierPage').classList.contains('hidden')) {
-  await filterCashierProducts(currentCashierCategory);
-  highlightActiveCategory();
 }
 
-}
 
 /* ---------- CART ---------- */
 function renderCart() {
@@ -909,16 +929,38 @@ function renderCart() {
 }
 
 async function removeCartItem(i) {
-  const item = cart[i];
-  if (modalProductIndex !== null && item.name !== 'Custom') {
-    const productsSnapshot = await getDocs(collection(db, 'products'));
-    const prodDoc = productsSnapshot.docs.find(d => d.data().name === item.name && d.data().category === item.category);
-    if (prodDoc) await updateDoc(doc(db, 'products', prodDoc.id), { stock: prodDoc.data().stock + item.qty });
+  // 🚫 Block spam clicking
+  if (isRemovingItem[i]) return;
+  isRemovingItem[i] = true;
+
+  try {
+    const item = cart[i];
+    if (!item) return;
+
+    if (item.name !== 'Custom') {
+      const productsSnapshot = await getDocs(collection(db, 'products'));
+      const prodDoc = productsSnapshot.docs.find(d =>
+        d.data().name === item.name &&
+        d.data().category === item.category
+      );
+
+      if (prodDoc) {
+        await updateDoc(
+          doc(db, 'products', prodDoc.id),
+          { stock: prodDoc.data().stock + item.qty }
+        );
+      }
+    }
+
+    cart.splice(i, 1);
+    renderCart();
+    await loadProducts();
+
+  } finally {
+    delete isRemovingItem[i];
   }
-  cart.splice(i, 1);
-  renderCart();
-  await loadProducts();
 }
+
 
 async function checkout() {
   if (cart.length === 0) return alert('Cart empty');
