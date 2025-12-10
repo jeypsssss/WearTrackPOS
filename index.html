@@ -362,6 +362,37 @@ body.dark-theme #cashierList div {
   </div>
 </div>
 
+<!-- EDIT PRODUCT MODAL -->
+<div id="editProductModal" class="modal">
+  <div class="modal-content">
+    <h3>Edit Product</h3>
+
+    <input type="hidden" id="editProdId">
+
+    <label>Product Name</label>
+    <input type="text" id="editProdName">
+
+    <label>Category</label>
+    <select id="editProdCat">
+      <option value="Sportswear">Sportswear</option>
+      <option value="Silver">Silver</option>
+      <option value="Indu">Indu</option>
+    </select>
+
+    <label>Price</label>
+    <input type="number" id="editProdPrice">
+
+    <label>Stock</label>
+    <input type="number" id="editProdStock">
+
+    <div style="display:flex; gap:10px; margin-top:10px;">
+      <button style="flex:1;" onclick="saveEditProduct()">Save</button>
+      <button style="flex:1; background:#eee; color:#333;" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
 <script type="module">
    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
@@ -423,23 +454,6 @@ localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
     msg.innerText = '';
     return;
   }
-  msg.innerText = 'Invalid credentials';
-  
-  if (cashier) {
-  currentUser = { role: 'cashier', name: u };
-  localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
-
-  document.getElementById('login').classList.add('hidden');
-  document.getElementById('cashierPage').classList.remove('hidden');
-
-  // ✅ ADD THIS LINE
-  document.getElementById('cashierNameDisplay').innerText = u;
-
-  await loadProducts();
-  await loadDailySales();
-  msg.innerText = '';
-  return;
-}
 
 }
 
@@ -471,8 +485,16 @@ async function loadInventory() {
   const list = document.getElementById('inventoryList'); list.innerHTML = '';
   products.forEach((p, i) => {
     const div = document.createElement('div');
-    div.innerHTML = `<div><strong>${p.name}</strong> (${p.category})<br>₱${p.price} | Stock: ${p.stock}</div>
-                     <button class="delBtn" data-id="${p.id}">Delete</button>`;
+    div.innerHTML = `
+  <div>
+    <strong>${p.name}</strong> (${p.category})<br>
+    ₱${p.price} | Stock: ${p.stock}
+  </div>
+  <div style="display:flex; gap:6px;">
+    <button class="editBtn" data-id="${p.id}">Edit</button>
+    <button class="delBtn" data-id="${p.id}">Delete</button>
+  </div>
+`;
     list.appendChild(div);
   });
   document.querySelectorAll('.delBtn').forEach(btn => {
@@ -480,7 +502,43 @@ async function loadInventory() {
       deleteProduct(this.dataset.id);
     });
   });
+  document.querySelectorAll('.editBtn').forEach(btn => {
+  btn.addEventListener('click', function () {
+    editProduct(this.dataset.id);
+  });
+});
 }
+
+function closeEditModal() {
+  document.getElementById('editProductModal').style.display = 'none';
+}
+
+async function saveEditProduct() {
+  const id = document.getElementById('editProdId').value;
+  const name = document.getElementById('editProdName').value.trim();
+  const category = document.getElementById('editProdCat').value;
+  const price = parseFloat(document.getElementById('editProdPrice').value);
+  const stock = parseInt(document.getElementById('editProdStock').value);
+
+  if (!name || !category || isNaN(price) || isNaN(stock)) {
+    return alert('Please fill all fields!');
+  }
+
+  await updateDoc(doc(db, 'products', id), {
+    name,
+    category,
+    price,
+    stock
+  });
+
+  closeEditModal();
+  await loadInventory();
+
+  if (!document.getElementById('cashierPage').classList.contains('hidden')) {
+    await loadProducts();
+  }
+}
+
 
 async function addProduct() {
   const n = document.getElementById('prodName').value.trim();
@@ -504,6 +562,23 @@ async function deleteProduct(id) {
     if (!document.getElementById('cashierPage').classList.contains('hidden')) await loadProducts();
   }
 }
+async function editProduct(id) {
+  const productsSnapshot = await getDocs(collection(db, 'products'));
+  const productDoc = productsSnapshot.docs.find(d => d.id === id);
+  if (!productDoc) return;
+
+  const data = productDoc.data();
+
+  document.getElementById('editProdId').value = id;
+  document.getElementById('editProdName').value = data.name;
+  document.getElementById('editProdCat').value = data.category;
+  document.getElementById('editProdPrice').value = data.price;
+  document.getElementById('editProdStock').value = data.stock;
+
+  document.getElementById('editProductModal').style.display = 'flex';
+}
+
+
 
 /* ---------- CASHIERS ---------- */
 async function loadCashiers() {
@@ -758,7 +833,11 @@ async function openModal(id) {
   const product = (await getDocs(collection(db, 'products'))).docs.find(d => d.id === id).data();
   document.getElementById('modalName').innerText = product.name;
   document.getElementById('modalPrice').value = product.price;
-  document.getElementById('modalQty').value = 1;
+     if (product.stock <= 0) {
+     alert('Out of stock!');
+     return;
+   }
+   document.getElementById('modalQty').value = 1;
   document.getElementById('productModal').style.display = 'flex';
 }
 
@@ -789,7 +868,12 @@ async function modalAddToCart() {
     const p = docSnap.docs.find(d => d.id === modalProductIndex).data();
     name = p.name;
     category = p.category;
-
+   
+   if (p.stock < qty) {
+  alert('Not enough stock!');
+  return;
+   }
+   
     // decrement stock
     const newStock = p.stock - qty;
     await updateDoc(doc(db, 'products', modalProductIndex), { stock: newStock >= 0 ? newStock : 0 });
@@ -838,17 +922,42 @@ async function removeCartItem(i) {
 
 async function checkout() {
   if (cart.length === 0) return alert('Cart empty');
+
   const now = new Date();
-  const productsCopy = JSON.parse(JSON.stringify(cart));
+
+  // ✅ MERGE DUPLICATE ITEMS
+  const merged = {};
+  for (const item of cart) {
+    const key = item.name + "_" + item.category;
+    if (!merged[key]) {
+      merged[key] = { ...item };
+    } else {
+      merged[key].qty += item.qty;
+    }
+  }
+
+  const productsCopy = Object.values(merged);
+
   let saleTotal = 0;
-  productsCopy.forEach(p => { saleTotal += (p.qty * p.price); });
-  await addDoc(collection(db, 'sales'), { cashier: currentUser.name, date: now.toLocaleString(), products: productsCopy, total: saleTotal });
+  productsCopy.forEach(p => {
+    saleTotal += (p.qty * p.price);
+  });
+
+  await addDoc(collection(db, 'sales'), {
+    cashier: currentUser.name,
+    date: now.toLocaleString(),
+    products: productsCopy,
+    total: saleTotal
+  });
+
   cart = [];
   renderCart();
   await loadDailySales();
   await loadSales();
+
   alert('Transaction saved!');
 }
+
 
 /* ---------- DAILY SALES ---------- */
 async function loadDailySales() {
@@ -1167,6 +1276,10 @@ window.openSalesHistory = openSalesHistory;
 window.closeSalesHistory = closeSalesHistory;
 window.addExpense = addExpense;
 window.managePanel = managePanel;
+window.editProduct = editProduct;
+window.login = login;
+window.closeEditModal = closeEditModal;
+window.saveEditProduct = saveEditProduct;
 </script>
 </body>
 </html>
