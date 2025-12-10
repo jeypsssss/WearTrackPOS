@@ -264,7 +264,7 @@ body.dark-theme #cashierList div {
 </div>
 <div id="side-panel" style="">
    <div style="display:flex; justify-content:space-between; align-items:center; padding: 10px 10px;">
-      <h1 style="color: #f6f6f6; font-size: 20px">Cashier: <strong id="cashierNameDisplay"></strong></h1>
+      <h1 style="color: #f6f6f6; font-size: 20px">Cashier <strong id="cashierNameDisplay"></strong></h1>
       <button onclick="managePanel()" style="width:40px; height:40px;">X</button>
    </div>
    <div class="panel-btn" style="margin-top:50px">
@@ -450,6 +450,7 @@ function logout() {
   document.getElementById('login').classList.remove('hidden');
   document.getElementById('adminPage').classList.add('hidden');
   document.getElementById('cashierPage').classList.add('hidden');
+  document.getElementById('side-panel').classList.remove('active');
 }
 
 
@@ -1138,7 +1139,7 @@ const themeToggle = document.getElementById('themeToggle');
 const savedTheme = localStorage.getItem('theme');
 if(savedTheme === 'dark') {
   document.body.classList.add('dark-theme');
-  themeToggle.innerText = 'Light Mode';
+  themeToggle.innerText = '☀️Light Mode';
 }
 
 async function managePanel(){
