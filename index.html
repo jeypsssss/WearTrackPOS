@@ -197,7 +197,7 @@ body.dark-theme #cashierList div {
  <h2>Densio POS Login</h2>
   <input type="text" id="username" placeholder="Username">
  <input type="password" id="password" placeholder="Password">
- <button onclick="login()" style="width:100%; height:50px;">Login</button>
+ <button onclick="login()" style="width:100%; height:50px; margin-top:15px">Login</button>
  <p id="loginMsg" style="color:crimson;"></p>
 </div>
 
@@ -205,11 +205,14 @@ body.dark-theme #cashierList div {
 <div id="adminPage" class="container hidden">
    <div style="display:flex; justify-content:space-between; align-items:center;">
     <h2>Admin Dashboard</h2>
+    <button onclick="logout()">Logout</button>
    </div>
- <button onclick="showSection('inventory')">Inventory</button>
- <button onclick="showSection('cashiers')">Cashiers</button>
- <button onclick="showSection('salesSummary')">Sales Summary</button>
- <button onclick="logout()">Logout</button>
+   <div style="margin-top:20px">
+    <button onclick="showSection('inventory')">Inventory</button>
+    <button onclick="showSection('cashiers')">Cashiers</button>
+    <button onclick="showSection('salesSummary')">Sales Summary</button>
+    <button onclick="showSection('settings')">Settings</button>
+   </div>
 
 
  <div id="inventory" class="hidden section">
@@ -235,10 +238,10 @@ body.dark-theme #cashierList div {
     <input type="text" id="cashierName" placeholder="Cashier Username">
     <input type="password" id="cashierPass" placeholder="Password">
     <button onclick="addCashier()" style="margin-bottom:10px; height:40px; width:100%">Add Cashier</button>
-    <div id="cashierList"></div>
-  </div>
+   <div id="cashierList"></div>
+ </div>
 
-  <div id="salesSummary" class="hidden section">
+  <div id="salesSummary" class="hidden section">
     <h3>Sales Summary</h3>
     <select id="adminDateFilter" style="width:100%; margin-bottom:10px;" onchange="filterSalesByDate()">
   <option value="All">All Dates</option>
@@ -250,6 +253,11 @@ body.dark-theme #cashierList div {
 
 
   </div>
+  <div id="settings" class="hidden section">
+  <h3>POS Settings</h3>
+  <div id="settingsList" style="display:flex; flex-direction:column; gap:10px;"></div>
+</div>
+
 </div>
 
 <!-- CASHIER PAGE -->
@@ -397,7 +405,7 @@ body.dark-theme #cashierList div {
    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, collection, getDocs, addDoc, deleteDoc,
-  doc, updateDoc
+  doc, updateDoc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /* ===== YOUR FIREBASE CONFIG ===== */
@@ -423,6 +431,12 @@ let currentAdminFilter = 'All';
 let currentAdminDate = 'All';
 let currentCashierCategory = 'Sportswear';
 const fixedCategories = ['Sportswear','Silver','Indu'];
+let customCategoryStatus = {
+  Sportswear: true,
+  Silver: true,
+  Indu: true
+};
+
 
 /* ---------- LOGIN ---------- */
 async function login() {
@@ -446,16 +460,22 @@ localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
   const cashiers = cashiersSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   const cashier = cashiers.find(c => c.username === u && c.password === p);
   if (cashier) {
-    currentUser = { role: 'cashier', name: u };
-localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+  currentUser = { role: 'cashier', name: u };
+  localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
 
-    document.getElementById('login').classList.add('hidden');
-    document.getElementById('cashierPage').classList.remove('hidden');
-    await loadProducts();
-    await loadDailySales();
-    msg.innerText = '';
-    return;
-  }
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('cashierPage').classList.remove('hidden');
+
+  // ✅ ADD THIS LINE
+  document.getElementById('cashierNameDisplay').innerText = currentUser.name;
+
+  await loadSettings();
+  await loadProducts();
+  await loadDailySales();
+  msg.innerText = '';
+  return;
+}
+
 
 }
 
@@ -472,13 +492,76 @@ function logout() {
 
 /* ---------- ADMIN ---------- */
 function showSection(id) {
-  ['inventory', 'cashiers', 'salesSummary'].forEach(sec => document.getElementById(sec).classList.add('hidden'));
+  ['inventory', 'cashiers', 'salesSummary', 'settings']
+    .forEach(sec => document.getElementById(sec).classList.add('hidden'));
+
   document.getElementById(id).classList.remove('hidden');
+
+  if (id === 'settings') loadSettings();
 }
+
 
 function toggleAddProduct() {
   document.getElementById('addProductForm').classList.toggle('hidden');
 }
+
+async function loadSettings() {
+  const settingsSnap = await getDocs(collection(db, 'settings'));
+
+  const existing = {};
+  settingsSnap.docs.forEach(docu => {
+    existing[docu.id] = docu.data().enabled;
+  });
+
+  // Defaults if not yet saved
+  fixedCategories.forEach(cat => {
+    customCategoryStatus[cat] =
+      existing[cat] !== undefined ? existing[cat] : true;
+  });
+
+  const list = document.getElementById('settingsList');
+  list.innerHTML = '';
+
+  fixedCategories.forEach(cat => {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.alignItems = 'center';
+    row.style.background = 'var(--card)';
+    row.style.padding = '12px';
+    row.style.borderRadius = '10px';
+    row.style.boxShadow = '0 2px 5px rgba(0,0,0,0.06)';
+
+    const label = document.createElement('strong');
+    label.innerText = `${cat} Custom Transaction`;
+
+    const toggle = document.createElement('button');
+    toggle.innerText = customCategoryStatus[cat] ? 'Enabled' : 'Disabled';
+    toggle.style.background = customCategoryStatus[cat]
+      ? 'var(--primary)'
+      : 'var(--danger)';
+
+    toggle.onclick = async () => {
+  customCategoryStatus[cat] = !customCategoryStatus[cat];
+
+  const docRef = doc(db, 'settings', cat);
+
+  // ✅ Always save using the category name as the document ID
+  await setDoc(docRef, {
+    enabled: customCategoryStatus[cat]
+  }, { merge: true });
+
+  await loadSettings();
+  await loadProducts();
+};
+
+
+    row.appendChild(label);
+    row.appendChild(toggle);
+    list.appendChild(row);
+  });
+}
+
 
 /* ---------- INVENTORY ---------- */
 async function loadInventory() {
@@ -823,7 +906,14 @@ function displayCashierProducts(products) {
   products.forEach((p, i) => {
     grid.innerHTML += `<div class="product" onclick="openModal('${p.id}')"><div><strong>${p.name}</strong></div><div>₱${p.price}</div><div>Stock: ${p.stock}</div></div>`;
   });
-  grid.innerHTML += `<div class="product custom-product"  onclick="openCustomModal()"><div><strong>Custom Transaction</strong></div><div>Tap to add</div></div>`;
+if (customCategoryStatus[currentCashierCategory] !== false) {
+  grid.innerHTML += `
+    <div class="product custom-product" onclick="openCustomModal()">
+      <div><strong>Custom Transaction</strong></div>
+      <div>Tap to add</div>
+    </div>
+  `;
+}
 }
 
 /* ---------- MODAL ---------- */
@@ -1262,6 +1352,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('login').classList.add('hidden');
     document.getElementById('cashierPage').classList.remove('hidden');
     document.getElementById('cashierNameDisplay').innerText = currentUser.name;
+    await loadSettings();
     await loadProducts();
     await loadDailySales();
   }
