@@ -84,6 +84,21 @@ input, select {
 #adminCategoryButtons button, #cashierCategoryButtons button { margin-right:6px; margin-bottom:8px; background:var(--primary); }
 #adminCategoryButtons button:hover, #cashierCategoryButtons button:hover { background:var(--primary-dark); }
 
+#cashierCategoryButtons button {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
+
+#cashierCategoryButtons button.active-cat {
+  background: var(--primary-dark);
+  color: white;
+  border-color: var(--primary-dark);
+}
+
+
 /* ---------- DAILY SALES ---------- */
 #dailySalesList div, #salesList div { background:var(--card); padding:10px; border-radius:8px; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
 .small-x { display:flex; align-items:center; justify-content:center; background:var(--danger); color:white; border-radius:25%; width:26px; height:26px; font-weight:bold; border:none; cursor:pointer; }
@@ -250,8 +265,6 @@ body.dark-theme #cashierList div {
 <div id="adminCategoryButtons"></div>
 <div id="adminGrandTotal" style="font-weight:800; margin:20px 0;">Total: ₱0</div>
 <div id="salesList"></div>
-
-
   </div>
   <div id="settings" class="hidden section">
   <h3>POS Settings</h3>
@@ -296,6 +309,7 @@ body.dark-theme #cashierList div {
   
   <div id="dailySummary" class="section">
      <h3>Daily Sales</h3>
+     <div id="dailyCategoryButtons" style="margin-bottom:10px;"></div>
      <div id="dailyTotalBox" style="font-weight:800; margin:20px 0;">Daily Total: ₱0</div>
      <div id="dailySalesList"></div>
    </div>
@@ -430,6 +444,7 @@ let isRemovingItem = {};
 let currentAdminFilter = 'All';
 let currentAdminDate = 'All';
 let currentCashierCategory = 'Sportswear';
+let currentDailyCategory = 'All';
 const fixedCategories = ['Sportswear','Silver','Indu'];
 let customCategoryStatus = {
   Sportswear: true,
@@ -1143,13 +1158,18 @@ sales.sort((a, b) => new Date(b.date) - new Date(a.date));
     div.appendChild(header);
 
     let saleTotal = 0;
-    s.products.forEach(p => {
-      const pdiv = document.createElement('div');
-      pdiv.innerText = `${p.name} (${p.qty}) [${p.category}] ₱${p.qty * p.price}`;
-      div.appendChild(pdiv);
-      saleTotal += (p.qty * p.price);
-    });
-
+    s.products
+  .filter(p => currentDailyCategory === 'All' || p.category === currentDailyCategory)
+  .forEach(p => {
+    const pdiv = document.createElement('div');
+    pdiv.innerText = `${p.name} (${p.qty}) [${p.category}] ₱${p.qty * p.price}`;
+    div.appendChild(pdiv);
+    saleTotal += (p.qty * p.price);
+  });
+// Skip this transaction if nothing matched the category
+   if (saleTotal === 0 && currentDailyCategory !== 'All') {
+       continue;
+   }
     const totLine = document.createElement('div');
     totLine.style.fontWeight = '700';
     totLine.style.marginTop = '6px';
@@ -1163,8 +1183,34 @@ sales.sort((a, b) => new Date(b.date) - new Date(a.date));
   
   
   document.getElementById('dailyTotalBox').innerText = `Daily Total: ₱${dailyTotal}`;
-
+   buildDailyCategoryButtons();
 }
+
+function buildDailyCategoryButtons() {
+  const container = document.getElementById('dailyCategoryButtons');
+  container.innerHTML = '';
+
+  const categories = ['All', 'Sportswear', 'Silver', 'Indu'];
+
+  categories.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.innerText = cat;
+    btn.style.marginRight = "6px";
+
+    if (cat === currentDailyCategory) {
+      btn.classList.add('active-cat');
+    }
+
+    btn.onclick = async () => {
+      currentDailyCategory = cat;
+      await loadDailySales();
+      buildDailyCategoryButtons();
+    };
+
+    container.appendChild(btn);
+  });
+}
+
 
 async function openSalesHistory() {
   document.getElementById('salesHistoryModal').style.display = 'flex';
