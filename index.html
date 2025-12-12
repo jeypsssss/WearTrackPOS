@@ -258,9 +258,18 @@ body.dark-theme #cashierList div {
 
   <div id="salesSummary" class="hidden section">
     <h3>Sales Summary</h3>
-    <select id="adminDateFilter" style="width:100%; margin-bottom:10px;" onchange="filterSalesByDate()">
-  <option value="All">All Dates</option>
-</select>
+   <div style="display:flex; gap:10px; margin-bottom:10px;">
+  <div style="flex:1;">
+    <label>From:</label>
+    <select id="adminDateFrom"></select>
+  </div>
+
+  <div style="flex:1;">
+    <label>To:</label>
+    <select id="adminDateTo"></select>
+  </div>
+</div>
+
 
 <div id="adminCategoryButtons"></div>
 <div id="adminGrandTotal" style="font-weight:800; margin:20px 0;">Total: ₱0</div>
@@ -744,10 +753,10 @@ async function editCashier(id) {
 /* ---------- ADMIN SALES ---------- */
 async function loadSales() {
   const catBtns = document.getElementById('adminCategoryButtons');
-  const dateSelect = document.getElementById('adminDateFilter');
+  
 
   catBtns.innerHTML = '';
-  dateSelect.innerHTML = '<option value="All">All Dates</option>';
+  
 
   const allBtn = document.createElement('button');
   allBtn.innerText = 'All';
@@ -769,16 +778,34 @@ async function loadSales() {
     sales.map(s => new Date(s.date).toLocaleDateString())
   )];
 
-  uniqueDates.sort((a, b) => new Date(b) - new Date(a));
+  // ---- Admin From-To Dropdown Build ----
+const fromSel = document.getElementById('adminDateFrom');
+const toSel   = document.getElementById('adminDateTo');
 
-  uniqueDates.forEach(d => {
-    const opt = document.createElement('option');
-    opt.value = d;
-    opt.innerText = d;
-    dateSelect.appendChild(opt);
-  });
+fromSel.innerHTML = "";
+toSel.innerHTML = "";
 
-  await filterSales(currentAdminFilter);
+// Sort oldest → newest
+uniqueDates.sort((a,b)=> new Date(a) - new Date(b));
+
+uniqueDates.forEach(d => {
+  const opt1 = document.createElement('option');
+  opt1.value = d;
+  opt1.innerText = d;
+  fromSel.appendChild(opt1);
+
+  const opt2 = opt1.cloneNode(true);
+  toSel.appendChild(opt2);
+});
+
+// Default range
+fromSel.value = uniqueDates[0];
+toSel.value = uniqueDates[uniqueDates.length - 1];
+
+// Rebuild on change
+fromSel.onchange = () => filterSales(currentAdminFilter);
+toSel.onchange   = () => filterSales(currentAdminFilter);
+await filterSales('All');
 }
 
 
@@ -795,10 +822,14 @@ sales.sort((a, b) => new Date(b.date) - new Date(a.date));
 
   for (const s of sales) {
     // ✅ Filter by DATE
-if (currentAdminDate !== 'All') {
-  const saleDate = new Date(s.date).toLocaleDateString();
-  if (saleDate !== currentAdminDate) continue;
-}
+// ---- Apply From-To Date Range ----
+const from = new Date(document.getElementById('adminDateFrom').value);
+const to   = new Date(document.getElementById('adminDateTo').value);
+to.setHours(23,59,59,999);
+
+const saleD = new Date(s.date);
+if (saleD < from || saleD > to) continue;
+
 
 // ✅ Filter by CATEGORY
 let filtered = s.products;
@@ -1404,11 +1435,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-window.filterSalesByDate = async function () {
-  const select = document.getElementById('adminDateFilter');
-  currentAdminDate = select.value;
-  await filterSales(currentAdminFilter);
-};
+
 const themeToggle = document.getElementById('themeToggle');
 
  themeToggle.addEventListener('click', () => {
