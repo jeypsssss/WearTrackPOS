@@ -327,7 +327,10 @@ body.dark-theme #cashierList div {
 
 <!-- SALES HISTORY MODAL -->
 <div id="salesHistoryModal" class="modal">
-  <div class="modal-content" style="max-width:800px;">
+  <div class="modal-content" style="max-width:800px; overflow-y:auto; max-height:100%">
+    <div style="margin-top:12px; text-align:right;">
+      <button onclick="closeSalesHistory()">Close</button>
+    </div>
     <h3 style="text-align:center;">Sales History</h3>
 
     <div style="display:flex; gap:10px; margin-bottom:10px;">
@@ -366,9 +369,7 @@ body.dark-theme #cashierList div {
 </div>
 
 
-    <div style="margin-top:12px; text-align:right;">
-      <button onclick="closeSalesHistory()">Close</button>
-    </div>
+    
   </div>
 </div>
 
