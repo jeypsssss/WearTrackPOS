@@ -123,7 +123,7 @@ input, select {
 .menuBtn{
    width: 20px;
 }
-#side-panel{
+#side-panel, #adminPanel{
    position: fixed;
    right: -500px;
    top: 0;
@@ -134,19 +134,77 @@ input, select {
    transition: right 0.3s ease-in-out;
 }
 
-#side-panel.active{
+#side-panel.active, #adminPanel.active{
    right: 0;
 }
 
-.panel-btn{
+.panel-btn, .admin-btn{
    display: flex;
    flex-direction: column;
    gap: 10px;
    padding: 0 8px;
 }
-.panel-btn button{
+.panel-btn button, .admin-btn button{
    height: 50px;
 }
+
+/* ---------- ADMIN CATEGORY BUTTONS ACTIVE (ADMIN) ---------- */
+#adminCategoryButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 15px 0;
+}
+
+#adminCategoryButtons button {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary-dark);
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px; /* pill shape */
+  box-shadow: none;
+}
+
+#adminCategoryButtons button:hover {
+  background: var(--accent-ghost);
+}
+
+#adminCategoryButtons button.active-cat {
+  background: var(--primary-dark);
+  color: white;
+  border-color: var(--primary-dark);
+}
+
+/* ---------- DAILY SALES CATEGORY BUTTONS ACTIVE ---------- */
+#dailyCategoryButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+#dailyCategoryButtons button {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary-dark);
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px; /* pill shape */
+  box-shadow: none;
+}
+
+#dailyCategoryButtons button:hover {
+  background: var(--accent-ghost);
+}
+
+#dailyCategoryButtons button.active-cat {
+  background: var(--primary-dark);
+  color: white;
+  border-color: var(--primary-dark);
+}
+
+
 
 /* ---------- RESPONSIVE ---------- */
 @media(max-width:900px){
@@ -220,16 +278,23 @@ body.dark-theme #cashierList div {
 <div id="adminPage" class="container hidden">
    <div style="display:flex; justify-content:space-between; align-items:center;">
     <h2>Admin Dashboard</h2>
-    <button onclick="logout()">Logout</button>
+    <button onclick="adminPanel()">
+       <img src="Image/Menu.png" alt="Image/Menu.png" class="menuBtn">
+    </button>
    </div>
-   <div style="margin-top:20px">
+   <div id="adminPanel">
+      <div style="display:flex; justify-content:end; margin: 10px;">
+      <button onclick="adminPanel()" style="width:40px; height:40px;">X</button>
+      </div>
+   <div class="admin-btn">
     <button onclick="showSection('inventory')">Inventory</button>
     <button onclick="showSection('cashiers')">Cashiers</button>
     <button onclick="showSection('salesSummary')">Sales Summary</button>
     <button onclick="showSection('settings')">Settings</button>
     <button onclick="showSection('reports')">Reports</button>
+    <button onclick="logout()">Logout</button>
    </div>
-
+   </div>
 
  <div id="inventory" class="hidden section">
    <h3>Inventory</h3>
@@ -284,13 +349,13 @@ body.dark-theme #cashierList div {
   </div>
 
   <div id="settings" class="hidden section">
-  <h3>POS Settings</h3>
-  <div id="settingsList" style="display:flex; flex-direction:column; gap:10px;"></div>
-</div>
-  <div id="reports" class="hidden section">
-  <h3>Report List</h3>
-  <div id="reportList"></div>
-</div>
+     <h3>POS Settings</h3>
+     <div id="settingsList" style="display:flex; flex-direction:column; gap:10px;"></div>
+   </div>
+   <div id="reports" class="hidden section">
+     <h3>Report List</h3>
+     <div id="reportList"></div>
+   </div>
 </div>
 
 <!-- CASHIER PAGE -->
@@ -556,6 +621,10 @@ window.managePanel = function () {
   document.getElementById("side-panel").classList.toggle("active");
 };
 
+window.adminPanel = function () {
+  document.getElementById("adminPanel").classList.toggle("active");
+};
+
 
 function logout() {
   currentUser = null;
@@ -577,6 +646,7 @@ function showSection(id) {
 
   if (id === 'settings') loadSettings();
   if (id === 'reports') loadReports(); // ✅ ADD THIS
+  document.getElementById("adminPanel").classList.remove("active");
 }
 
 
@@ -776,11 +846,6 @@ async function deleteCashier(id) {
   }
 }
 
-
-
-
-
-
 async function editCashier(id) {
   const newName = prompt('New username');
   const newPass = prompt('New password');
@@ -874,6 +939,11 @@ await filterSales('All');
 async function filterSales(cat) {
   currentAdminFilter = cat;
   let sales = await getSalesOnce();
+  
+  // highlight active category
+  document.querySelectorAll('#adminCategoryButtons button').forEach(btn => {
+    btn.classList.toggle('active-cat', btn.innerText === cat);
+  });
  
 // ✅ SORT BY DATE (NEWEST FIRST)
 sales.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1313,7 +1383,6 @@ function buildDailyCategoryButtons() {
   categories.forEach(cat => {
     const btn = document.createElement('button');
     btn.innerText = cat;
-    btn.style.marginRight = "6px";
 
     if (cat === currentDailyCategory) {
       btn.classList.add('active-cat');
@@ -1769,7 +1838,6 @@ async function saveExpense() {
   await buildSalesHistory();
 }
 
-
 async function loadReports() {
   const snap = await getDocs(collection(db, 'reports'));
 
@@ -1796,7 +1864,6 @@ async function loadReports() {
     div.style.borderRadius = '10px';
     div.style.boxShadow = '0 2px 6px rgba(0,0,0,0.06)';
     div.style.marginBottom = '10px';
-
     div.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <div>
@@ -1809,7 +1876,6 @@ async function loadReports() {
         <button onclick="viewReport('${r.id}')">View</button>
       </div>
     `;
-
     list.appendChild(div);
   });
 }
@@ -1872,12 +1938,9 @@ async function viewReport(id) {
 
   document.getElementById('historyTotals').innerText =
     `Grand Total: ₱${report.grandTotal}
-Expenses: ₱${report.totalExpenses}
-Net: ₱${report.net}`;
+   Expenses: ₱${report.totalExpenses}
+   Net: ₱${report.net}`;
 }
-
-
-
 
 // Expose functions to global scope for HTML onclick
 window.login = login;
@@ -1899,6 +1962,7 @@ window.checkout = checkout;
 window.openSalesHistory = openSalesHistory;
 window.closeSalesHistory = closeSalesHistory;
 window.managePanel = managePanel;
+window.adminPanel = adminPanel;
 window.editProduct = editProduct;
 window.closeEditModal = closeEditModal;
 window.saveEditProduct = saveEditProduct;
