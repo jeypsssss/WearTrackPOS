@@ -316,7 +316,7 @@ body.dark-theme #cashierList div {
 </div>
 <!-- ADD EXPENSE MODAL -->
 <div id="expenseModal" class="modal" style="z-index: 9999999">
-  <div class="modal-content">
+  <div class="modal-content" style="border: 1px solid whitesmoke">
     <h3>Add Expense</h3>
 
     <label>Description</label>
@@ -326,8 +326,8 @@ body.dark-theme #cashierList div {
     <input type="number" id="expenseAmount" placeholder="e.g. 150">
 
     <div style="display:flex; gap:10px; margin-top:12px;">
-      <button style="flex:1;" onclick="saveExpense()">Save</button>
-      <button style="flex:1; background:#eee; color:#333;" onclick="closeExpenseModal()">Cancel</button>
+      <button style="flex:1; padding: 10px;" onclick="saveExpense()">Save</button>
+      <button style="flex:1; background:#eee; color:#333; padding:10px;" onclick="closeExpenseModal()">Cancel</button>
     </div>
   </div>
 </div>
