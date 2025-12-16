@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Sample POS</title>
+<title>WearTrack POS</title>
 <style>
 /* ---------- PASTEL BLUE THEME + layout ---------- */
 :root{
@@ -314,6 +314,24 @@ body.dark-theme #cashierList div {
     <button onclick="logout()">Logout</button>
    </div>
 </div>
+<!-- ADD EXPENSE MODAL -->
+<div id="expenseModal" class="modal" style="z-index: 9999999">
+  <div class="modal-content">
+    <h3>Add Expense</h3>
+
+    <label>Description</label>
+    <input type="text" id="expenseDesc" placeholder="e.g. Transportation">
+
+    <label>Amount</label>
+    <input type="number" id="expenseAmount" placeholder="e.g. 150">
+
+    <div style="display:flex; gap:10px; margin-top:12px;">
+      <button style="flex:1;" onclick="saveExpense()">Save</button>
+      <button style="flex:1; background:#eee; color:#333;" onclick="closeExpenseModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
   <div id="cashierCategoryButtons"></div>
   <div id="pos">
     <div id="productGrid"></div>
@@ -370,7 +388,7 @@ body.dark-theme #cashierList div {
     </div>
 
     <div style="margin-top:12px;">
-  <button id="addExpenseBtn" onclick="addExpense()">+ Add Expense</button>
+  <button id="addExpenseBtn" onclick="openExpenseModal()">+ Add Expense</button>
   <p id="List-txt"></p>
 </div>
 
@@ -467,6 +485,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+
+
 /* ---------- GLOBAL ---------- */
 
 // ===== FIRESTORE CACHES (READ OPTIMIZATION) =====
@@ -530,9 +550,12 @@ localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
   msg.innerText = '';
   return;
 }
-
-
 }
+
+window.managePanel = function () {
+  document.getElementById("side-panel").classList.toggle("active");
+};
+
 
 function logout() {
   currentUser = null;
@@ -755,28 +778,7 @@ async function deleteCashier(id) {
 
 
 
-async function addExpense() {
-  const desc = prompt('Enter expense description');
-  if (!desc) return;
 
-  let amt = prompt('Enter amount (numbers only)');
-  if (amt === null) return; // canceled
-  amt = parseFloat(amt);
-  
-  if (isNaN(amt) || amt <= 0) {
-    return alert('Invalid amount! Please enter a number greater than 0.');
-  }
-
-  await addDoc(collection(db, 'expenses'), {
-    cashier: currentUser.name,
-    description: desc,
-    amount: amt,
-    date: new Date().toISOString()
-  });
-     expensesCache = null;
-
-  await buildSalesHistory();
-}
 
 
 async function editCashier(id) {
@@ -1702,13 +1704,13 @@ if(savedTheme === 'dark') {
   themeToggle.innerText = '☀️Light Mode';
 }
 
-async function managePanel(){
-   document.getElementById("side-panel").classList.toggle("active");
-}
+
 function openReportPassword() {
   document.getElementById('reportPassword').value = '';
   document.getElementById('reportPasswordModal').style.display = 'flex';
 }
+
+
 
 function closeReportPassword() {
   document.getElementById('reportPasswordModal').style.display = 'none';
@@ -1730,6 +1732,43 @@ async function confirmMakeReport() {
   closeReportPassword();
   await makeReport();
 }
+
+function openExpenseModal() {
+  document.getElementById('expenseDesc').value = '';
+  document.getElementById('expenseAmount').value = '';
+  document.getElementById('expenseModal').style.display = 'flex';
+}
+
+function closeExpenseModal() {
+  document.getElementById('expenseModal').style.display = 'none';
+}
+
+async function saveExpense() {
+  const desc = document.getElementById('expenseDesc').value.trim();
+  const amt = parseFloat(document.getElementById('expenseAmount').value);
+
+  if (!desc) {
+    alert('Please enter description');
+    return;
+  }
+
+  if (isNaN(amt) || amt <= 0) {
+    alert('Please enter a valid amount');
+    return;
+  }
+
+  await addDoc(collection(db, 'expenses'), {
+    cashier: currentUser.name,
+    description: desc,
+    amount: amt,
+    date: new Date().toISOString()
+  });
+
+  expensesCache = null;
+  closeExpenseModal();
+  await buildSalesHistory();
+}
+
 
 async function loadReports() {
   const snap = await getDocs(collection(db, 'reports'));
@@ -1859,7 +1898,6 @@ window.removeCartItem = removeCartItem;
 window.checkout = checkout;
 window.openSalesHistory = openSalesHistory;
 window.closeSalesHistory = closeSalesHistory;
-window.addExpense = addExpense;
 window.managePanel = managePanel;
 window.editProduct = editProduct;
 window.closeEditModal = closeEditModal;
@@ -1868,6 +1906,9 @@ window.openReportPassword = openReportPassword;
 window.closeReportPassword = closeReportPassword;
 window.confirmMakeReport = confirmMakeReport;
 window.viewReport = viewReport;
+window.openExpenseModal = openExpenseModal;
+window.closeExpenseModal = closeExpenseModal;
+window.saveExpense = saveExpense;
 </script>
 </body>
 </html>
