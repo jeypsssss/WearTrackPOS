@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>WearTrack POS Offline</title>
+<title>Sample POS</title>
 <style>
 /* ---------- PASTEL BLUE THEME + layout ---------- */
 :root{
@@ -28,7 +28,7 @@ body {
 
 .container { max-width:1200px; margin:auto; padding:10px; }
 
-h2, h3 { text-align:center; color: #12355b; margin:8px 0; }
+h2, h3 { text-align:center; color: #4d8ed3; margin:8px 0; }
 button {
  padding:6px 12px; border:none; border-radius:6px;
  background:var(--primary); color:white; cursor:pointer; transition:0.16s;
@@ -227,6 +227,7 @@ body.dark-theme #cashierList div {
     <button onclick="showSection('cashiers')">Cashiers</button>
     <button onclick="showSection('salesSummary')">Sales Summary</button>
     <button onclick="showSection('settings')">Settings</button>
+    <button onclick="showSection('reports')">Reports</button>
    </div>
 
 
@@ -263,11 +264,17 @@ body.dark-theme #cashierList div {
     <label>From:</label>
     <select id="adminDateFrom"></select>
   </div>
-
   <div style="flex:1;">
     <label>To:</label>
     <select id="adminDateTo"></select>
   </div>
+</div>
+
+<div style="margin-bottom:10px;">
+  <label>Cashier:</label>
+  <select id="adminCashierFilter">
+    <option value="All">All Cashiers</option>
+  </select>
 </div>
 
 
@@ -275,11 +282,15 @@ body.dark-theme #cashierList div {
 <div id="adminGrandTotal" style="font-weight:800; margin:20px 0;">Total: ₱0</div>
 <div id="salesList"></div>
   </div>
+
   <div id="settings" class="hidden section">
   <h3>POS Settings</h3>
   <div id="settingsList" style="display:flex; flex-direction:column; gap:10px;"></div>
 </div>
-
+  <div id="reports" class="hidden section">
+  <h3>Report List</h3>
+  <div id="reportList"></div>
+</div>
 </div>
 
 <!-- CASHIER PAGE -->
@@ -333,8 +344,8 @@ body.dark-theme #cashierList div {
     </div>
     <h3 style="text-align:center;">Sales History</h3>
 
-    <div style="display:flex; gap:10px; margin-bottom:10px;">
-      <div style="flex:1;">
+    <div id="sales-history-dd" style="display:flex; gap:10px; margin-bottom:10px;">
+      <div style="flex:1;" >
         <label>From:</label>
         <select id="historyDateFrom"></select>
       </div>
@@ -359,17 +370,28 @@ body.dark-theme #cashierList div {
     </div>
 
     <div style="margin-top:12px;">
-  <button onclick="addExpense()">+ Add Expense</button>
+  <button id="addExpenseBtn" onclick="addExpense()">+ Add Expense</button>
+  <p id="List-txt"></p>
 </div>
 
 <div id="expenseList" style="margin-top:10px;"></div>
-
-<div id="historyTotals" style="margin-top:12px; font-weight:700;">
-  Total: ₱0 | Grand Total: ₱0
+<div style="display:flex; justify-content:space-between; align-itemscenter;">
+   <div id="historyTotals" style="margin-top:12px; font-weight:700; ">
+   </div>
+   <div style="display:flex; align-items:end">
+       <button id="makeReportBtn" style="padding:12px" onclick="openReportPassword()">Make Report</button>
+   </div>
 </div>
-
-
-    
+  </div>
+</div>
+<div id="reportPasswordModal" class="modal" >
+  <div class="modal-content" style="border: 1px solid #cccccc">
+    <h3>Confirm Report</h3>
+    <input type="password" id="reportPassword" placeholder="Enter your password">
+    <div style="margin-top:10px">
+    <button onclick="confirmMakeReport()">Confirm</button>
+    <button onclick="closeReportPassword()">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -446,13 +468,21 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 /* ---------- GLOBAL ---------- */
+
+// ===== FIRESTORE CACHES (READ OPTIMIZATION) =====
+let productsCache = null;
+let salesCache = null;
+let expensesCache = null;
+let cashiersCache = null;
+
 let currentUser = null;
+let isViewingReport = false;
 let cart = [];
 let modalProductIndex = null;
 let isAddingToCart = false;
 let isRemovingItem = {};
 let currentAdminFilter = 'All';
-let currentAdminDate = 'All';
+let currentAdminCashier = 'All';
 let currentCashierCategory = 'Sportswear';
 let currentDailyCategory = 'All';
 const fixedCategories = ['Sportswear','Silver','Indu'];
@@ -481,9 +511,9 @@ localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
     msg.innerText = '';
     return;
   }
-  const cashiersSnapshot = await getDocs(collection(db, 'cashiers'));
-  const cashiers = cashiersSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  const cashiers = await getCashiersOnce();
   const cashier = cashiers.find(c => c.username === u && c.password === p);
+
   if (cashier) {
   currentUser = { role: 'cashier', name: u };
   localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
@@ -517,13 +547,16 @@ function logout() {
 
 /* ---------- ADMIN ---------- */
 function showSection(id) {
-  ['inventory', 'cashiers', 'salesSummary', 'settings']
+  ['inventory', 'cashiers', 'salesSummary', 'settings', 'reports']
     .forEach(sec => document.getElementById(sec).classList.add('hidden'));
 
   document.getElementById(id).classList.remove('hidden');
 
   if (id === 'settings') loadSettings();
+  if (id === 'reports') loadReports(); // ✅ ADD THIS
 }
+
+
 
 
 function toggleAddProduct() {
@@ -590,8 +623,8 @@ async function loadSettings() {
 
 /* ---------- INVENTORY ---------- */
 async function loadInventory() {
-  const productsSnapshot = await getDocs(collection(db, 'products'));
-  const products = productsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  const products = await getProductsOnce();
+
   const list = document.getElementById('inventoryList'); list.innerHTML = '';
   products.forEach((p, i) => {
     const div = document.createElement('div');
@@ -640,6 +673,7 @@ async function saveEditProduct() {
     price,
     stock
   });
+  productsCache = null;
 
   closeEditModal();
   await loadInventory();
@@ -657,6 +691,7 @@ async function addProduct() {
   const stock = parseInt(document.getElementById('prodStock').value);
   if (!n || !c || !price || !stock) return alert('Please fill all required fields!');
   await addDoc(collection(db, 'products'), { name: n, category: c, price, stock });
+  productsCache = null;
   await loadInventory();
   if (!document.getElementById('cashierPage').classList.contains('hidden')) await loadProducts();
   document.getElementById('prodName').value = '';
@@ -668,16 +703,17 @@ async function addProduct() {
 async function deleteProduct(id) {
   if (confirm('Delete this product?')) {
     await deleteDoc(doc(db, 'products', id));
+    productsCache = null;
     await loadInventory();
     if (!document.getElementById('cashierPage').classList.contains('hidden')) await loadProducts();
   }
 }
 async function editProduct(id) {
-  const productsSnapshot = await getDocs(collection(db, 'products'));
-  const productDoc = productsSnapshot.docs.find(d => d.id === id);
-  if (!productDoc) return;
+  const products = await getProductsOnce();
+const product = products.find(p => p.id === id);
+if (!product) return;
 
-  const data = productDoc.data();
+const data = product;
 
   document.getElementById('editProdId').value = id;
   document.getElementById('editProdName').value = data.name;
@@ -735,8 +771,9 @@ async function addExpense() {
     cashier: currentUser.name,
     description: desc,
     amount: amt,
-    date: new Date().toLocaleString()
+    date: new Date().toISOString()
   });
+     expensesCache = null;
 
   await buildSalesHistory();
 }
@@ -754,7 +791,6 @@ async function editCashier(id) {
 /* ---------- ADMIN SALES ---------- */
 async function loadSales() {
   const catBtns = document.getElementById('adminCategoryButtons');
-  
 
   catBtns.innerHTML = '';
   
@@ -772,8 +808,31 @@ async function loadSales() {
   });
 
   // ✅ Build Date Dropdown
-  const salesSnapshot = await getDocs(collection(db, 'sales'));
-  const sales = salesSnapshot.docs.map(d => d.data());
+  const sales = await getSalesOnce();
+  
+  // ---- Build Cashier Dropdown ----
+const cashierSelect = document.getElementById('adminCashierFilter');
+cashierSelect.innerHTML = '<option value="All">All Cashiers</option>';
+
+const cashiers = await getCashiersOnce();
+cashiers.forEach(c => {
+  const opt = document.createElement('option');
+  opt.value = c.username;
+  opt.innerText = c.username;
+  cashierSelect.appendChild(opt);
+});
+
+// Default
+currentAdminCashier = 'All';
+
+// Re-filter on change
+cashierSelect.onchange = () => {
+  currentAdminCashier = cashierSelect.value;
+  filterSales(currentAdminFilter);
+};
+
+  
+  
 
   const uniqueDates = [...new Set(
     sales.map(s => new Date(s.date).toLocaleDateString())
@@ -812,9 +871,8 @@ await filterSales('All');
 
 async function filterSales(cat) {
   currentAdminFilter = cat;
-  const salesSnapshot = await getDocs(collection(db, 'sales'));
-  let sales = salesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-
+  let sales = await getSalesOnce();
+ 
 // ✅ SORT BY DATE (NEWEST FIRST)
 sales.sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -822,14 +880,21 @@ sales.sort((a, b) => new Date(b.date) - new Date(a.date));
   let grandTotal = 0;
 
   for (const s of sales) {
+     if (currentAdminCashier !== 'All' && s.cashier !== currentAdminCashier) {
+  continue;
+}
     // ✅ Filter by DATE
 // ---- Apply From-To Date Range ----
-const from = new Date(document.getElementById('adminDateFrom').value);
-const to   = new Date(document.getElementById('adminDateTo').value);
-to.setHours(23,59,59,999);
+const fromStr = document.getElementById('adminDateFrom').value;
+const toStr   = document.getElementById('adminDateTo').value;
 
-const saleD = new Date(s.date);
+const from = new Date(fromStr + ' 00:00');
+const to   = new Date(toStr   + ' 23:59');
+
+const saleD = new Date(new Date(s.date).toLocaleDateString());
+
 if (saleD < from || saleD > to) continue;
+
 
 
 // ✅ Filter by CATEGORY
@@ -845,38 +910,47 @@ if (cat !== 'All') {
     div.style.padding = '8px';
     div.style.marginBottom = '6px';
 
+    
+
     const header = document.createElement('div');
-    header.style.display = 'flex';
-    header.style.justifyContent = 'space-between';
-    header.style.alignItems = 'center';
+header.style.display = 'flex';
+header.style.justifyContent = 'space-between';
 
-    const title = document.createElement('strong');
-    title.innerText = `${s.date}   ${s.cashier}`;
+const title = document.createElement('strong');
+title.innerText = `${new Date(s.date).toLocaleString()} - ${s.cashier}`;
 
-    const delBtn = document.createElement('button');
-    delBtn.innerText = 'X';
-    delBtn.style.background = 'var(--danger)';
-    delBtn.style.color = '#fff';
-    delBtn.onclick = async () => {
-      if (confirm('Delete this transaction?')) {
-        // Increment stock back
-        const productsSnapshot = await getDocs(collection(db, 'products'));
-        const products = productsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        for (const pItem of s.products) {
-          const prod = products.find(pr => pr.name === pItem.name && pr.category === pItem.category);
-          if (prod) {
-            await updateDoc(doc(db, 'products', prod.id), { stock: prod.stock + pItem.qty });
-          }
-        }
-        await deleteDoc(doc(db, 'sales', s.id));
-        await filterSales(currentAdminFilter);
-        if (!document.getElementById('cashierPage').classList.contains('hidden')) await loadProducts();
-      }
-    };
+const delBtn = document.createElement('button');
+delBtn.innerText = 'X';
+delBtn.className = 'small-x';
 
-    header.appendChild(title);
-    header.appendChild(delBtn);
-    div.appendChild(header);
+delBtn.onclick = async () => {
+  if (!confirm('Delete this transaction?')) return;
+
+  // restore stock
+  const products = await getProductsOnce();
+
+
+  for (const p of s.products) {
+    const prod = products.find(pr =>
+      pr.name === p.name && pr.category === p.category
+    );
+    if (prod) {
+      await updateDoc(doc(db, 'products', prod.id), {
+        stock: prod.stock + p.qty
+      });
+      productsCache = null;
+    }
+  }
+
+  await deleteDoc(doc(db, 'sales', s.id));
+  salesCache = null;
+  await filterSales(currentAdminFilter);
+};
+
+header.appendChild(title);
+header.appendChild(delBtn);
+div.appendChild(header);
+
 
     let saleTotal = 0;
     filtered.forEach(p => {
@@ -895,6 +969,10 @@ if (cat !== 'All') {
     grandTotal += saleTotal;
     list.appendChild(div);
   }
+  
+  // ✅ Filter by CASHIER
+
+
 
    document.getElementById('adminGrandTotal').innerText = `Total: ₱${grandTotal}`;
 
@@ -902,8 +980,8 @@ if (cat !== 'All') {
 
 /* ---------- CASHIER ---------- */
 async function loadProducts() {
-  await filterCashierProducts(currentCashierCategory);  // keep current category
   await populateCategoryButtons();                // draw buttons first
+  await filterCashierProducts(currentCashierCategory);  // keep current category
 }
 
 
@@ -942,11 +1020,11 @@ function highlightActiveCategory() {
 
 
 async function filterCashierProducts(category) {
-  const productsSnapshot = await getDocs(collection(db, 'products'));
-  let products = productsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  let products = await getProductsOnce();
   if (category) products = products.filter(p => p.category === category);
   displayCashierProducts(products);
 }
+
 
 function displayCashierProducts(products) {
   const grid = document.getElementById('productGrid'); grid.innerHTML = '';
@@ -967,18 +1045,23 @@ if (customCategoryStatus[currentCashierCategory] !== false) {
 async function openModal(id) {
   modalProductIndex = id;
   document.getElementById('customNameDiv').style.display = 'none';
-  const docRef = doc(db, 'products', id);
-  const docSnap = await getDocs(collection(db, 'products'));
-  const product = (await getDocs(collection(db, 'products'))).docs.find(d => d.id === id).data();
+
+  const products = await getProductsOnce();
+  const product = products.find(p => p.id === id);
+  if (!product) return;
+
+  if (product.stock <= 0) {
+    alert('Out of stock!');
+    return;
+  }
+
   document.getElementById('modalName').innerText = product.name;
   document.getElementById('modalPrice').value = product.price;
-     if (product.stock <= 0) {
-     alert('Out of stock!');
-     return;
-   }
-   document.getElementById('modalQty').value = 1;
+  document.getElementById('modalQty').value = 1;
+
   document.getElementById('productModal').style.display = 'flex';
 }
+
 
 function openCustomModal() {
   modalProductIndex = null;
@@ -1011,9 +1094,9 @@ async function modalAddToCart() {
       category = currentCashierCategory;
     } else {
       const productRef = doc(db, 'products', modalProductIndex);
-      const snapshot = await getDocs(collection(db, 'products'));
-      const productDoc = snapshot.docs.find(d => d.id === modalProductIndex);
-      const product = productDoc.data();
+      const products = await getProductsOnce();
+      const product = products.find(p => p.id === modalProductIndex);
+
 
       if (product.stock < qty) {
         alert('Not enough stock!');
@@ -1075,11 +1158,11 @@ async function removeCartItem(i) {
     if (!item) return;
 
     if (item.name !== 'Custom') {
-      const productsSnapshot = await getDocs(collection(db, 'products'));
-      const prodDoc = productsSnapshot.docs.find(d =>
-        d.data().name === item.name &&
-        d.data().category === item.category
-      );
+      const products = await getProductsOnce();
+      const prod = products.find(p =>
+  p.name === item.name && p.category === item.category
+);
+
 
       if (prodDoc) {
         await updateDoc(
@@ -1124,11 +1207,11 @@ async function checkout() {
 
   await addDoc(collection(db, 'sales'), {
     cashier: currentUser.name,
-    date: now.toLocaleString(),
+    date: now.toISOString(),
     products: productsCopy,
     total: saleTotal
   });
-
+  salesCache = null;
   cart = [];
   renderCart();
   await loadDailySales();
@@ -1140,8 +1223,7 @@ async function checkout() {
 
 /* ---------- DAILY SALES ---------- */
 async function loadDailySales() {
-  const salesSnapshot = await getDocs(collection(db, 'sales'));
-  let sales = salesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  let sales = await getSalesOnce();
 
 // ✅ SORT BY DATE (NEWEST FIRST)
 sales.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1164,7 +1246,8 @@ sales.sort((a, b) => new Date(b.date) - new Date(a.date));
     header.style.alignItems = 'center';
 
     const title = document.createElement('strong');
-    title.innerText = `${s.date}   ${s.cashier}`;
+    title.innerText = `${new Date(s.date).toLocaleString()}   ${s.cashier}`;
+
 
     const delBtn = document.createElement('button');
     delBtn.className = 'small-x';
@@ -1172,13 +1255,14 @@ sales.sort((a, b) => new Date(b.date) - new Date(a.date));
     delBtn.onclick = async () => {
       if (confirm('Delete this transaction?')) {
         // increment stock back
-        const productsSnapshot = await getDocs(collection(db, 'products'));
-        const products = productsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        const products = await getProductsOnce();
         for (const pItem of s.products) {
           const prod = products.find(pr => pr.name === pItem.name && pr.category === pItem.category);
           if (prod) await updateDoc(doc(db, 'products', prod.id), { stock: prod.stock + pItem.qty });
+          productsCache = null;
         }
         await deleteDoc(doc(db, 'sales', s.id));
+        salesCache = null;
         await loadDailySales();
         await loadSales();
         await loadProducts();
@@ -1245,19 +1329,39 @@ function buildDailyCategoryButtons() {
 
 
 async function openSalesHistory() {
+   // 🔄 RESET DATE DROPDOWNS
+document.getElementById('historyDateFrom').removeAttribute('data-filled');
+document.getElementById('historyDateFrom').innerHTML = '';
+document.getElementById('historyDateTo').innerHTML = '';
+
+  isViewingReport = false;
+document.getElementById('sales-history-dd').style.display = 'flex';
+  document.getElementById('historyDateFrom').disabled = false;
+  document.getElementById('historyDateTo').disabled = false;
+  document.getElementById('addExpenseBtn').style.display = 'inline-block';
+  document.getElementById('makeReportBtn').style.display = 'inline-block';
+
   document.getElementById('salesHistoryModal').style.display = 'flex';
   await buildSalesHistory();
 }
 
+
 function closeSalesHistory() {
+  isViewingReport = false;
   document.getElementById('salesHistoryModal').style.display = 'none';
+  document.getElementById("List-txt").innerText = "";
 }
 
+
 async function buildSalesHistory() {
-  const snap = await getDocs(collection(db, 'sales'));
-  const sales = snap.docs
-    .map(d => d.data())
-    .filter(s => s.cashier === currentUser.name);
+  const sales = (await getSalesOnce())
+  .filter(s => s.cashier === currentUser.name);
+
+// 🔒 Get reported dates for cashier
+const repDocSnap = await getDocs(collection(db, 'reported_dates'));
+const repDoc = repDocSnap.docs.find(d => d.id === currentUser.name);
+
+const reportedDates = repDoc ? repDoc.data().dates || [] : [];
 
   const fromSel = document.getElementById('historyDateFrom');
   const toSel = document.getElementById('historyDateTo');
@@ -1268,7 +1372,7 @@ async function buildSalesHistory() {
 
   // ✅ Create unique date list FIRST
   const dates = [...new Set(
-    sales.map(s => new Date(s.date).toLocaleDateString())
+    sales.map(s => new Date(s.date).toLocaleDateString()).filter(d => !reportedDates.includes(d)) // ✅ hide reported dates
   )].sort((a,b)=> new Date(a) - new Date(b));
 
   if (dates.length === 0) {
@@ -1304,11 +1408,62 @@ async function buildSalesHistory() {
   const fromDate = new Date(fromSel.value);
   const toDate   = new Date(toSel.value);
   toDate.setHours(23, 59, 59, 999);
+  
+
 
   const map = {};
   let grandTotal = 0;
   let totSilver = 0, totSport = 0, totIndu = 0;
 
+  
+   // ✅ LOAD EXPENSES (NO DATE FILTER – FIXED)
+const expenseListDiv = document.getElementById('expenseList');
+expenseListDiv.innerHTML = '';
+
+const expenses = (await getExpensesOnce())
+  .filter(e => e.cashier === currentUser.name);
+
+if (expenses.length === 0) {
+  document.getElementById("List-txt").innerText = "No Expenses";
+} else {
+  document.getElementById("List-txt").innerText = "Expenses List:";
+}
+
+let totalExpenses = 0;
+
+expenses.forEach(e => {
+  const div = document.createElement('div');
+  div.style.padding = '6px';
+  div.style.borderBottom = '1px solid #e6f7ff';
+  div.style.display = 'flex';
+  div.style.justifyContent = 'space-between';
+
+  const text = document.createElement('span');
+  text.innerText = `${e.description}: ₱${e.amount}`;
+  div.appendChild(text);
+
+  const delBtn = document.createElement('button');
+  delBtn.innerText = 'X';
+  delBtn.style.background = 'var(--danger)';
+  delBtn.style.color = '#fff';
+  delBtn.style.border = 'none';
+  delBtn.style.borderRadius = '4px';
+  delBtn.style.padding = '2px 6px';
+
+  delBtn.onclick = async () => {
+    if (!confirm('Delete this expense?')) return;
+    await deleteDoc(doc(db, 'expenses', e.id));
+    expensesCache = null;
+    await buildSalesHistory();
+  };
+
+  div.appendChild(delBtn);
+  expenseListDiv.appendChild(div);
+
+  totalExpenses += e.amount;
+});
+
+   
   sales.forEach(s => {
     const d = new Date(s.date);
     const key = d.toLocaleDateString();
@@ -1360,54 +1515,143 @@ async function buildSalesHistory() {
   tbody.appendChild(totalRow);
 
 // Load Expenses
-const expenseSnap = await getDocs(collection(db, 'expenses'));
-const expenses = expenseSnap.docs
-  .map(d => ({ id: d.id, ...d.data() }))
-  .filter(e => e.cashier === currentUser.name);
+if (expenses.length == 0){
+   if(isViewingReport){
+   document.getElementById("List-txt").innerText = "Expenses List:"
+   }
+   document.getElementById("List-txt").innerText = "No Expenses"
+} else{
+   document.getElementById("List-txt").innerText = "Expenses List:"
+}
+   
 
-const expenseListDiv = document.getElementById('expenseList');
-expenseListDiv.innerHTML = '';
-let totalExpenses = 0;
 
-expenses.forEach(e => {
-  const div = document.createElement('div');
-  div.style.padding = '6px';
-  div.style.borderBottom = '1px solid #e6f7ff';
-  div.style.display = 'flex';
-  div.style.justifyContent = 'space-between';
-  div.style.alignItems = 'center';
 
-  const text = document.createElement('span');
-  text.innerText = `${e.description}: ₱${e.amount}`;
-  div.appendChild(text);
 
-  const delBtn = document.createElement('button');
-  delBtn.innerText = 'X';
-  delBtn.style.background = 'var(--danger)';
-  delBtn.style.color = '#fff';
-  delBtn.style.border = 'none';
-  delBtn.style.borderRadius = '4px';
-  delBtn.style.padding = '2px 6px';
-  delBtn.style.cursor = 'pointer';
-  delBtn.onclick = async () => {
-    if (confirm('Delete this expense?')) {
-      await deleteDoc(doc(db, 'expenses', e.id));
-      await buildSalesHistory();
-    }
-  };
-  div.appendChild(delBtn);
-
-  expenseListDiv.appendChild(div);
-  totalExpenses += e.amount;
-});
 
 // ✅ Final totals
 totalsBox.innerText = `Grand Total: ₱${grandTotal}\nExpenses: ₱${totalExpenses}\nNet: ₱${grandTotal - totalExpenses}`;
+
+
+}
+
+async function makeReport() {
+  const from = document.getElementById('historyDateFrom').value;
+  const to   = document.getElementById('historyDateTo').value;
+
+  const sales = (await getSalesOnce()).filter(s =>
+  s.cashier === currentUser.name &&
+  new Date(s.date) >= new Date(from) &&
+  new Date(s.date) <= new Date(to + ' 23:59')
+);
+
+
+  if (sales.length === 0) {
+    alert('No sales to report');
+    return;
+  }
+
+  const expenses = (await getExpensesOnce())
+  .filter(e => e.cashier === currentUser.name);
+
+
+  let grandTotal = 0;
+  sales.forEach(s => grandTotal += s.total);
+
+  let totalExpenses = 0;
+  expenses.forEach(e => totalExpenses += e.amount);
+
+  const net = grandTotal - totalExpenses;
+
+  // SAVE REPORT
+  await addDoc(collection(db, 'reports'), {
+    cashier: currentUser.name,
+    fromDate: from,
+    toDate: to,
+    sales,
+    expenses,
+    grandTotal,
+    totalExpenses,
+    net,
+    createdAt: new Date()
+  });
+
+  // MARK SALES AS REPORTED
+  const dateRange = [];
+sales.forEach(s => {
+  const d = new Date(s.date).toLocaleDateString();
+  if (!dateRange.includes(d)) dateRange.push(d);
+});
+
+const repRef = doc(db, 'reported_dates', currentUser.name);
+
+// get existing reported dates
+const repSnap = await getDocs(collection(db, 'reported_dates'));
+const repDoc = repSnap.docs.find(d => d.id === currentUser.name);
+
+let existingDates = [];
+if (repDoc && repDoc.data().dates) {
+  existingDates = repDoc.data().dates;
+}
+
+// merge old + new (no duplicates)
+const mergedDates = [...new Set([...existingDates, ...dateRange])];
+
+await setDoc(repRef, {
+  dates: mergedDates
+});
+
+
+
+  alert('Report saved!');
+  // 🧹 CLEAR EXPENSES AFTER REPORT
+const expSnap = await getDocs(collection(db, 'expenses'));
+for (const d of expSnap.docs) {
+  if (d.data().cashier === currentUser.name) {
+    await deleteDoc(doc(db, 'expenses', d.id));
+    expensesCache = null;
+  }
+}
+
+  closeSalesHistory();
 }
 
 
 
 /* ---------- INIT ---------- */
+
+
+// ===== SAFE ONE-TIME FETCHERS =====
+async function getProductsOnce(force = false) {
+  if (productsCache && !force) return productsCache;
+  const snap = await getDocs(collection(db, 'products'));
+  productsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return productsCache;
+}
+
+async function getSalesOnce(force = false) {
+  if (salesCache && !force) return salesCache;
+  const snap = await getDocs(collection(db, 'sales'));
+  salesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return salesCache;
+}
+
+async function getExpensesOnce(force = false) {
+  if (expensesCache && !force) return expensesCache;
+  const snap = await getDocs(collection(db, 'expenses'));
+  expensesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return expensesCache;
+}
+
+async function getCashiersOnce(force = false) {
+  if (cashiersCache && !force) return cashiersCache;
+  const snap = await getDocs(collection(db, 'cashiers'));
+  cashiersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return cashiersCache;
+}
+
+
+
 (async function initOnLoad() {
   // Firestore collections auto-created; nothing needed here
 })();
@@ -1461,6 +1705,140 @@ if(savedTheme === 'dark') {
 async function managePanel(){
    document.getElementById("side-panel").classList.toggle("active");
 }
+function openReportPassword() {
+  document.getElementById('reportPassword').value = '';
+  document.getElementById('reportPasswordModal').style.display = 'flex';
+}
+
+function closeReportPassword() {
+  document.getElementById('reportPasswordModal').style.display = 'none';
+}
+
+async function confirmMakeReport() {
+  const entered = document.getElementById('reportPassword').value;
+
+  // verify cashier password
+  const cashiers = await getCashiersOnce();
+  const cashier = cashiers.find(c => c.username === currentUser.name);
+
+
+  if (!cashier || cashier.password !== entered) {
+    alert('Incorrect password');
+    return;
+  }
+
+  closeReportPassword();
+  await makeReport();
+}
+
+async function loadReports() {
+  const snap = await getDocs(collection(db, 'reports'));
+
+  // 🔽 Convert to array + sort by createdAt (NEWEST FIRST)
+  const reports = snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => {
+      const aTime = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const bTime = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      return bTime - aTime;
+    });
+
+  const list = document.getElementById('reportList');
+  list.innerHTML = '';
+
+  reports.forEach(r => {
+    const created = r.createdAt?.toDate
+      ? r.createdAt.toDate()
+      : new Date(r.createdAt);
+
+    const div = document.createElement('div');
+    div.style.background = 'var(--card)';
+    div.style.padding = '12px';
+    div.style.borderRadius = '10px';
+    div.style.boxShadow = '0 2px 6px rgba(0,0,0,0.06)';
+    div.style.marginBottom = '10px';
+
+    div.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <strong>Cashier:</strong> ${r.cashier}<br>
+          <span>${r.fromDate} - ${r.toDate}</span><br>
+          <small style="color:gray;">
+            Submitted: ${created.toLocaleString()}
+          </small>
+        </div>
+        <button onclick="viewReport('${r.id}')">View</button>
+      </div>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+async function viewReport(id) {
+  isViewingReport = true;
+
+  const snap = await getDocs(collection(db, 'reports'));
+  const reportDoc = snap.docs.find(d => d.id === id);
+  if (!reportDoc) return alert('Report not found');
+
+  const report = reportDoc.data();
+
+  document.getElementById('salesHistoryModal').style.display = 'flex';
+
+  // Disable controls
+  document.getElementById('sales-history-dd').style.display = 'none';
+  document.getElementById('historyDateFrom').disabled = true;
+  document.getElementById('historyDateTo').disabled = true;
+  document.getElementById('addExpenseBtn').style.display = 'none';
+  document.getElementById('makeReportBtn').style.display = 'none';
+  
+  // Clear UI
+  document.querySelector('#historyTable tbody').innerHTML = '';
+  document.getElementById('expenseList').innerHTML = '';
+
+  // Build table from REPORT DATA
+  const tbody = document.querySelector('#historyTable tbody');
+  const map = {};
+
+  report.sales.forEach(s => {
+    const date = new Date(s.date).toLocaleDateString();
+    if (!map[date]) map[date] = { Silver: 0, Sportswear: 0, Indu: 0 };
+
+    s.products.forEach(p => {
+      map[date][p.category] += p.qty * p.price;
+    });
+  });
+
+  Object.keys(map).forEach(date => {
+    const r = map[date];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+       <td style="padding:8px;border:1px solid #cfe9ff;">${date}</td>
+      <td style="padding:8px;border:1px solid #cfe9ff;">${r.Silver}</td>
+      <td style="padding:8px;border:1px solid #cfe9ff;">${r.Sportswear}</td>
+      <td style="padding:8px;border:1px solid #cfe9ff;">${r.Indu}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Expenses (READ-ONLY)
+  let totalExpenses = 0;
+  report.expenses.forEach(e => {
+    const div = document.createElement('div');
+    div.innerText = `${e.description}: ₱${e.amount}`;
+    document.getElementById('expenseList').appendChild(div);
+    totalExpenses += e.amount;
+  });
+
+  document.getElementById('historyTotals').innerText =
+    `Grand Total: ₱${report.grandTotal}
+Expenses: ₱${report.totalExpenses}
+Net: ₱${report.net}`;
+}
+
+
+
 
 // Expose functions to global scope for HTML onclick
 window.login = login;
@@ -1484,9 +1862,12 @@ window.closeSalesHistory = closeSalesHistory;
 window.addExpense = addExpense;
 window.managePanel = managePanel;
 window.editProduct = editProduct;
-window.login = login;
 window.closeEditModal = closeEditModal;
 window.saveEditProduct = saveEditProduct;
+window.openReportPassword = openReportPassword;
+window.closeReportPassword = closeReportPassword;
+window.confirmMakeReport = confirmMakeReport;
+window.viewReport = viewReport;
 </script>
 </body>
 </html>
