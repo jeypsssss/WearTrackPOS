@@ -534,8 +534,9 @@ body.dark-theme #cashierList div {
    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, collection, getDocs, addDoc, deleteDoc,
-  doc, updateDoc, setDoc
+  doc, updateDoc, setDoc, increment
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
 
 /* ===== YOUR FIREBASE CONFIG ===== */
 const firebaseConfig = {
@@ -583,7 +584,7 @@ async function login() {
   const u = document.getElementById('username').value.trim();
   const p = document.getElementById('password').value.trim();
   const msg = document.getElementById('loginMsg');
-  if (u === 'Admin' && p === 'admin') {
+  if (u === 'Admin' && p === 'admin' || u === 'Paul' && p === 'Paul02073') {
     currentUser = { role: 'admin', name: 'admin' };
 localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
 
@@ -605,8 +606,6 @@ localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
 
   document.getElementById('login').classList.add('hidden');
   document.getElementById('cashierPage').classList.remove('hidden');
-
-  // ✅ ADD THIS LINE
   document.getElementById('cashierNameDisplay').innerText = currentUser.name;
 
   await loadSettings();
@@ -614,6 +613,8 @@ localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
   await loadDailySales();
   msg.innerText = '';
   return;
+}else{
+   alert("WRONG PASSWORD OR USERNAME!");
 }
 }
 
@@ -926,7 +927,7 @@ uniqueDates.forEach(d => {
 });
 
 // Default range
-fromSel.value = uniqueDates[0];
+fromSel.value = uniqueDates[uniqueDates.length - 1];
 toSel.value = uniqueDates[uniqueDates.length - 1];
 
 // Rebuild on change
@@ -1008,9 +1009,10 @@ delBtn.onclick = async () => {
     );
     if (prod) {
       await updateDoc(doc(db, 'products', prod.id), {
-        stock: prod.stock + p.qty
+        stock: increment(p.qty)
       });
       productsCache = null;
+
     }
   }
 
@@ -1179,7 +1181,7 @@ async function modalAddToCart() {
       await updateDoc(productRef, {
         stock: product.stock - qty
       });
-
+      productsCache = null;
       name = product.name;
       category = product.category;
     }
@@ -1235,13 +1237,14 @@ async function removeCartItem(i) {
   p.name === item.name && p.category === item.category
 );
 
+if (prod) {
+  await updateDoc(
+    doc(db, 'products', prod.id),
+    { stock: prod.stock + item.qty }
+  );
+  productsCache = null; // ✅ refresh stock display
+}
 
-      if (prodDoc) {
-        await updateDoc(
-          doc(db, 'products', prodDoc.id),
-          { stock: prodDoc.data().stock + item.qty }
-        );
-      }
     }
 
     cart.splice(i, 1);
@@ -1259,18 +1262,22 @@ async function checkout() {
 
   const now = new Date();
 
-  // ✅ MERGE DUPLICATE ITEMS
-  const merged = {};
-  for (const item of cart) {
-    const key = item.name + "_" + item.category;
-    if (!merged[key]) {
-      merged[key] = { ...item };
-    } else {
-      merged[key].qty += item.qty;
-    }
-  }
+  // ✅ MERGE DUPLICATE ITEMS (PRICE-SAFE)
+   const merged = {};
+   
+   for (const item of cart) {
+     // 👇 price included so different prices won't merge
+     const key = `${item.name}_${item.category}_${item.price}`;
+   
+     if (!merged[key]) {
+       merged[key] = { ...item };
+     } else {
+       merged[key].qty += item.qty;
+     }
+   }
+   
+   const productsCopy = Object.values(merged);
 
-  const productsCopy = Object.values(merged);
 
   let saleTotal = 0;
   productsCopy.forEach(p => {
@@ -1330,8 +1337,13 @@ sales.sort((a, b) => new Date(b.date) - new Date(a.date));
         const products = await getProductsOnce();
         for (const pItem of s.products) {
           const prod = products.find(pr => pr.name === pItem.name && pr.category === pItem.category);
-          if (prod) await updateDoc(doc(db, 'products', prod.id), { stock: prod.stock + pItem.qty });
-          productsCache = null;
+            if (prod) {
+           await updateDoc(doc(db, 'products', prod.id), {
+             stock: increment(pItem.qty)
+           });
+           productsCache = null;
+         }
+
         }
         await deleteDoc(doc(db, 'sales', s.id));
         salesCache = null;
