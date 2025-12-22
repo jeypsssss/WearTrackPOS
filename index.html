@@ -572,6 +572,22 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// 💾 CART LOCALSTORAGE HELPERS
+function saveCartToStorage() {
+  localStorage.setItem('pos_cart', JSON.stringify(cart));
+}
+
+function loadCartFromStorage() {
+  const saved = localStorage.getItem('pos_cart');
+  if (saved) {
+    try {
+      cart = JSON.parse(saved) || [];
+    } catch (e) {
+      cart = [];
+    }
+  }
+}
+
 
 
 /* ---------- GLOBAL ---------- */
@@ -651,6 +667,7 @@ window.adminPanel = function () {
 function logout() {
   currentUser = null;
   cart = [];
+  localStorage.removeItem('pos_cart');
   localStorage.removeItem('loggedInUser');
   document.getElementById('login').classList.remove('hidden');
   document.getElementById('adminPage').classList.add('hidden');
@@ -1216,7 +1233,7 @@ async function modalAddToCart() {
 
     cart.push({ name, price, qty, category });
     renderCart();
-
+    saveCartToStorage();
     // reset modal
     document.getElementById('modalQty').value = 1;
     document.getElementById('modalPrice').value = 0;
@@ -1248,6 +1265,7 @@ function renderCart() {
     table.appendChild(tr);
   });
   document.getElementById('cartTotal').innerText = total;
+  saveCartToStorage();
 }
 
 async function removeCartItem(i) {
@@ -1277,6 +1295,7 @@ if (prod) {
 
     cart.splice(i, 1);
     renderCart();
+    saveCartToStorage();
     await loadProducts();
 
   } finally {
@@ -1321,6 +1340,7 @@ async function checkout() {
   salesCache = null;
   cart = [];
   renderCart();
+  localStorage.removeItem('pos_cart');
   await loadDailySales();
   await loadSales();
 
@@ -1781,6 +1801,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadInventory();
     await loadCashiers();
     await loadSales();
+    
+    loadCartFromStorage();
+    renderCart();
+
   }
 
   if (currentUser.role === 'cashier') {
@@ -1790,6 +1814,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadSettings();
     await loadProducts();
     await loadDailySales();
+    
+    loadCartFromStorage();
+    renderCart();
   }
 });
 
