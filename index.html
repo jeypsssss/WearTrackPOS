@@ -18,6 +18,14 @@
 
 * { box-sizing: border-box;}
 
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+
+
 body {
  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
  margin:0; padding:0;
@@ -44,7 +52,7 @@ input, select {
 
 /* ---------- SECTIONS ---------- */
 .section { margin-top:18px; }
-#inventoryList div, #cashierList div {
+#inventoryList div{
  margin-bottom:10px; padding:10px;
   background:var(--card); border-radius:8px;
  box-shadow:0 2px 5px rgba(0,0,0,0.06);
@@ -112,6 +120,18 @@ input, select {
 
 #cashierCategoryButtons button:hover {
   background: var(--accent-ghost);
+}
+
+.cashier-tab{
+   padding-left: 10px;
+   padding-right: 10px;
+   border: #d9d9d9b1 1px solid;
+   border-radius: 12px;
+   height: 50px;
+   margin-bottom: 8px;
+   display:flex;
+   justify-content: space-between;
+   align-items: center;
 }
 
 #cashierCategoryButtons button.active-cat {
@@ -470,7 +490,8 @@ body.dark-theme #cashierList div {
 <div id="reportPasswordModal" class="modal" >
   <div class="modal-content" style="border: 1px solid #cccccc">
     <h3>Confirm Report</h3>
-    <input type="password" id="reportPassword" placeholder="Enter your password">
+    <di id="reportSum">Report Summary: </di>
+    <input type="password" id="reportPassword" placeholder="Enter your password" style="margin-top: 20px;">
     <div style="margin-top:10px">
     <button onclick="confirmMakeReport()">Confirm</button>
     <button onclick="closeReportPassword()">Cancel</button>
@@ -826,7 +847,7 @@ async function loadCashiers() {
   const cashiers = cashiersSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   const list = document.getElementById('cashierList'); list.innerHTML = '';
   cashiers.forEach((c, i) => {
-    list.innerHTML += `<div>${c.username} <button onclick="editCashier('${c.id}')">Edit</button> <button onclick="deleteCashier('${c.id}')">Delete</button></div>`;
+    list.innerHTML += `<div class="cashier-tab">${c.username} <div classh="cashier-tab-btn"><button onclick="editCashier('${c.id}')">Edit</button> <button onclick="deleteCashier('${c.id}')">Delete</button></div></div>`;
   });
 }
 
@@ -1054,7 +1075,7 @@ div.appendChild(header);
 
 /* ---------- CASHIER ---------- */
 async function loadProducts() {
-  await populateCategoryButtons();                // draw buttons first
+  await populateCategoryButtons();  // draw buttons first
   await filterCashierProducts(currentCashierCategory);  // keep current category
 }
 
@@ -1119,16 +1140,15 @@ if (customCategoryStatus[currentCashierCategory] !== false) {
 async function openModal(id) {
   modalProductIndex = id;
   document.getElementById('customNameDiv').style.display = 'none';
-
+  
   const products = await getProductsOnce();
   const product = products.find(p => p.id === id);
   if (!product) return;
-
+  
   if (product.stock <= 0) {
     alert('Out of stock!');
     return;
   }
-
   document.getElementById('modalName').innerText = product.name;
   document.getElementById('modalPrice').value = product.price;
   document.getElementById('modalQty').value = 1;
@@ -1138,6 +1158,7 @@ async function openModal(id) {
 
 
 function openCustomModal() {
+   
   modalProductIndex = null;
   document.getElementById('customNameDiv').style.display = 'block';
   document.getElementById('modalName').innerText = 'Custom Transaction';
@@ -1157,9 +1178,16 @@ async function modalAddToCart() {
 
   const addBtn = document.querySelector('#productModal button');
   addBtn.disabled = true;
-
+  
   try {
-    const qty = parseInt(document.getElementById('modalQty').value);
+    let qtyInput = document.getElementById('modalQty').value.trim();
+   let qty = parseInt(qtyInput);
+   
+   // ✅ Fix NaN / empty / invalid quantity
+   if (isNaN(qty) || qty <= 0) {
+     qty = 1;
+     document.getElementById('modalQty').value = 1;
+   }
     const price = parseFloat(document.getElementById('modalPrice').value) || 0;
     let name, category;
 
@@ -1608,13 +1636,15 @@ if (expenses.length == 0){
 }
    
 
-
-
-
-
 // ✅ Final totals
 totalsBox.innerText = `Grand Total: ₱${grandTotal}\nExpenses: ₱${totalExpenses}\nNet: ₱${grandTotal - totalExpenses}`;
 
+ //Report Confirm
+ document.getElementById('reportSum').innerHTML = `Report Summary: <br> <br>
+     Date: ${fromSel.value} - ${toSel.value} <br>
+     Grand Total: ₱${grandTotal} <br>
+     Expenses:    ₱${totalExpenses} <br>
+     Net:         ₱${grandTotal - totalExpenses} <br>`;
 
 }
 
