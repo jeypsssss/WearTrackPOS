@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +9,7 @@
 <style>
 /* ---------- PASTEL BLUE THEME + layout ---------- */
 :root{
+ /* EXISTING VARIABLES */
  --bg: #e6f3ff;
  --card: #ffffff;
  --primary: #7fb7ff;
@@ -14,6 +17,11 @@
  --muted: #5a6b7a;
  --danger: #ff6b6b;
  --accent-ghost: #dff1ff;
+
+ /* NEW VARIABLES FOR TICKETS */
+ --ticket-border: #cfe9ff;
+ --ticket-shadow: rgba(0,0,0,0.02);
+ --ticket-hover-shadow: rgba(0,0,0,0.08);
 }
 
 * { box-sizing: border-box;}
@@ -23,8 +31,6 @@ select,
 textarea {
   font-size: 16px;
 }
-
-
 
 body {
  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -52,7 +58,7 @@ input, select {
 
 /* ---------- SECTIONS ---------- */
 .section { margin-top:18px; }
-#inventoryList div{
+#inventoryList div, #cashierList div{
  margin-bottom:10px; padding:10px;
   background:var(--card); border-radius:8px;
  box-shadow:0 2px 5px rgba(0,0,0,0.06);
@@ -62,16 +68,104 @@ input, select {
 /* ---------- POS LAYOUT ---------- */
 #pos { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; align-items:flex-start; }
 #productGrid {
- display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
+ display:grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); 
  gap:12px; flex:2; max-height:640px; overflow-y:auto; padding-right:6px; ;
 }
+
+/* ========== NEW PRODUCT CARD DESIGN (GRID ITEMS) ========== */
 .product {
-  background:var(--card); border-radius:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.06);
-  cursor:pointer; display:flex; flex-direction:column; align-items:center; padding:10px; text-align:center;
-  transition:0.14s;
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 150px;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 1px solid transparent;
+  cursor: pointer;
+  overflow: hidden;
 }
-.product:hover { transform:translateY(-4px); box-shadow:0 6px 16px rgba(0,0,0,0.08); }
+
+.product:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+  border-color: var(--primary);
+}
+
+.product-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.category-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent-ghost);
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.stock-pill {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: 700;
+}
+.stock-high { background: #d1fae5; color: #065f46; } 
+.stock-low  { background: #ffedd5; color: #9a3412; } 
+.stock-out  { background: #fee2e2; color: #991b1b; } 
+
+.product-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.3;
+    margin-bottom: auto;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-align: left;
+}
+
+.product-price {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    text-align: right;
+    margin-top: 4px;
+}
+
+/* ========== CUSTOM TRANSACTION CARD ========== */
+.custom-product {
+    border: 2px dashed #cbd5e1;
+    box-shadow: none;
+    background: transparent !important;
+    justify-content: center;
+    align-items: center;
+    color: var(--primary);
+}
+
+.custom-product:hover {
+    background: var(--accent-ghost) !important;
+    border-color: var(--primary);
+}
+
+.custom-content { text-align: center; }
+.custom-icon { font-size: 32px; line-height: 1; margin-bottom: 4px; font-weight: 300; }
+
+/* ============================================= */
 
 #cart {
   flex:1.5; background:var(--card); padding:12px; border-radius:10px;
@@ -99,27 +193,10 @@ input, select {
   font-weight: 600;
 }
 
-
 #cashierCategoryButtons button.active-cat {
   background: var(--primary-dark);
   color: white;
   border-color: var(--primary-dark);
-}
-
-
-/* ---------- DAILY SALES ---------- */
-#dailySalesList div, #salesList div { background:var(--card); padding:10px; border-radius:8px; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
-.small-x { display:flex; align-items:center; justify-content:center; background:var(--danger); color:white; border-radius:25%; width:26px; height:26px; font-weight:bold; border:none; cursor:pointer; }
-
-#cashierCategoryButtons button {
-  background: transparent;
-  border: 2px solid var(--primary);
-  color: var(--primary-dark);
-  font-weight: 600;
-}
-
-#cashierCategoryButtons button:hover {
-  background: var(--accent-ghost);
 }
 
 .cashier-tab{
@@ -134,15 +211,7 @@ input, select {
    align-items: center;
 }
 
-#cashierCategoryButtons button.active-cat {
-  background: var(--primary-dark);
-  color: white;
-  border-color: var(--primary-dark);
-}
-
-.menuBtn{
-   width: 20px;
-}
+.menuBtn{ width: 20px; }
 #side-panel, #adminPanel{
    position: fixed;
    right: -500px;
@@ -154,9 +223,7 @@ input, select {
    transition: right 0.3s ease-in-out;
 }
 
-#side-panel.active, #adminPanel.active{
-   right: 0;
-}
+#side-panel.active, #adminPanel.active{ right: 0; }
 
 .panel-btn, .admin-btn{
    display: flex;
@@ -164,9 +231,7 @@ input, select {
    gap: 10px;
    padding: 0 8px;
 }
-.panel-btn button, .admin-btn button{
-   height: 50px;
-}
+.panel-btn button, .admin-btn button{ height: 50px; }
 
 /* ---------- ADMIN CATEGORY BUTTONS ACTIVE (ADMIN) ---------- */
 #adminCategoryButtons {
@@ -182,13 +247,11 @@ input, select {
   color: var(--primary-dark);
   font-weight: 600;
   padding: 8px 14px;
-  border-radius: 8px; /* pill shape */
+  border-radius: 8px;
   box-shadow: none;
 }
 
-#adminCategoryButtons button:hover {
-  background: var(--accent-ghost);
-}
+#adminCategoryButtons button:hover { background: var(--accent-ghost); }
 
 #adminCategoryButtons button.active-cat {
   background: var(--primary-dark);
@@ -210,13 +273,11 @@ input, select {
   color: var(--primary-dark);
   font-weight: 600;
   padding: 6px 14px;
-  border-radius: 8px; /* pill shape */
+  border-radius: 8px; 
   box-shadow: none;
 }
 
-#dailyCategoryButtons button:hover {
-  background: var(--accent-ghost);
-}
+#dailyCategoryButtons button:hover { background: var(--accent-ghost); }
 
 #dailyCategoryButtons button.active-cat {
   background: var(--primary-dark);
@@ -224,28 +285,147 @@ input, select {
   border-color: var(--primary-dark);
 }
 
+/* =================================================================
+   NEW TICKET CARD STYLES (INTEGRATED)
+   ================================================================= */
+.sale-ticket {
+    background: var(--card);
+    color: var(--muted);
+    border: 1px solid var(--ticket-border);
+    border-radius: 12px;
+    margin-bottom: 15px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 6px var(--ticket-shadow);
+}
 
+.sale-ticket:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px var(--ticket-hover-shadow);
+    border-color: var(--primary);
+}
 
-/* ---------- RESPONSIVE ---------- */
+/* Ticket Header */
+.ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px 16px;
+    border-bottom: 2px dashed rgba(0,0,0,0.08);
+    background: rgba(127, 183, 255, 0.05); /* very faint primary tint */
+}
+
+.ticket-meta {
+    display: flex;
+    flex-direction: column;
+}
+
+.meta-time {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    opacity: 0.7;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.meta-cashier {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary-dark);
+}
+
+/* New Ticket Delete Button */
+.btn-delete {
+    background: transparent;
+    border: none;
+    color: #ccc;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    line-height: 1;
+    transition: 0.2s;
+    box-shadow: none; /* Override general button shadow */
+}
+.btn-delete:hover {
+    background: #fee2e2;
+    color: var(--danger);
+    transform: none; /* Override general button hover */
+}
+
+/* Ticket Body */
+.ticket-body {
+    padding: 14px 16px;
+}
+
+.ticket-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.item-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.item-qty {
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+/* Badges */
+.badge {
+    font-size: 10px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* Light Mode Badge Colors */
+.badge.sport { background: #e0f2fe; color: #0284c7; }
+.badge.silver { background: #f1f5f9; color: #475569; }
+.badge.indu  { background: #fff7ed; color: #ea580c; }
+.badge.other { background: #eef; color: #666; }
+
+/* Ticket Footer */
+.ticket-footer {
+    padding: 12px 16px;
+    background: rgba(0,0,0,0.02);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+.total-label {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.7;
+}
+
+.total-price {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--primary-dark);
+}
+
+/* =================================================================
+   RESPONSIVE & DARK THEME
+   ================================================================= */
 @media(max-width:900px){
  #pos { flex-direction:column; gap:10px; }
  #productGrid { max-height:none; width:100%; }
  #cart { max-height:none; width:100%; margin-top:10px;}
 }
 
-@media(max-width:450px){
-   /*.cashier-text{font-size:17px;}*/
-}
-
-/* Custom Transaction Card */
-.custom-product {
-  background: var(--card);
-}
-
 /* Dark theme support */
-body.dark-theme .custom-product {
-  background: var(--card);
-}
 body.dark-theme #side-panel{
    background-color: #515151;
 }
@@ -258,6 +438,12 @@ body.dark-theme  {
   --muted: #8e8e8e;
   --danger: #ff6b6b;
   --accent-ghost: #2a2a2a;
+  
+  /* Ticket variables for Dark Mode */
+  --ticket-border: #333333;
+  --ticket-shadow: rgba(0,0,0,0.2);
+  --ticket-hover-shadow: rgba(0,0,0,0.3);
+
   color: var(--muted);
   background: var(--bg);
 }
@@ -274,12 +460,44 @@ body.dark-theme button {
 }
 
 body.dark-theme #cart,
-body.dark-theme #productGrid div,
+body.dark-theme #productGrid .product,
 body.dark-theme #inventoryList div,
 body.dark-theme #cashierList div {
   background: var(--card);
   color: var(--muted);
 }
+
+/* Dark theme specific overrides for custom card */
+body.dark-theme .custom-product {
+    border-color: #444;
+}
+body.dark-theme .custom-product:hover {
+    background: #2a2a2a !important;
+}
+
+/* Dark Theme Overrides for New Ticket */
+body.dark-theme .sale-ticket {
+    background: var(--card);
+    border-color: var(--ticket-border);
+}
+
+body.dark-theme .ticket-header {
+    border-bottom-color: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.03);
+}
+
+body.dark-theme .ticket-footer {
+    background: rgba(255,255,255,0.03);
+    border-top-color: rgba(255,255,255,0.1);
+}
+
+body.dark-theme .btn-delete:hover {
+    background: rgba(255, 107, 107, 0.2);
+}
+
+body.dark-theme .badge.sport { background: #0c4a6e; color: #bae6fd; }
+body.dark-theme .badge.silver { background: #334155; color: #cbd5e1; }
+body.dark-theme .badge.indu  { background: #431407; color: #fed7aa; }
 
 </style>
 </head>
@@ -372,8 +590,18 @@ body.dark-theme #cashierList div {
      <h3>POS Settings</h3>
      <div id="settingsList" style="display:flex; flex-direction:column; gap:10px;"></div>
    </div>
+   
+   <!-- MODIFIED: Reports Section with Cashier Filter -->
    <div id="reports" class="hidden section">
      <h3>Report List</h3>
+     
+     <div style="margin-bottom: 15px;">
+        <label style="font-weight:600; color:var(--muted);">Filter by Cashier:</label>
+        <select id="reportCashierFilter" style="margin-top:5px;">
+            <option value="All">All Cashiers</option>
+        </select>
+     </div>
+     
      <div id="reportList"></div>
    </div>
 </div>
@@ -427,6 +655,9 @@ body.dark-theme #cashierList div {
       </table>
       <p style="font-weight:700; margin-top:8px;">Total: ₱<span id="cartTotal">0</span></p>
       <button onclick="checkout()" style="height:50px">Checkout</button>
+    </div>
+    <div style="margin-top:10px; font-size:12px; color:var(--muted)">
+       
     </div>
   </div>
   
@@ -550,12 +781,33 @@ body.dark-theme #cashierList div {
   </div>
 </div>
 
+<!-- EDIT CASHIER MODAL (NEW) -->
+<div id="editCashierModal" class="modal">
+  <div class="modal-content">
+    <h3>Edit Cashier</h3>
+
+    <input type="hidden" id="editCashierId">
+
+    <label>Username</label>
+    <input type="text" id="editCashierName" placeholder="New Username">
+
+    <label>Password</label>
+    <input type="password" id="editCashierPass" placeholder="New Password">
+
+    <div style="display:flex; gap:10px; margin-top:10px;">
+      <button style="flex:1;" onclick="saveEditCashier()">Save</button>
+      <button style="flex:1; background:#eee; color:#333;" onclick="closeEditCashierModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 
 <script type="module">
-   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, collection, getDocs, addDoc, deleteDoc,
-  doc, updateDoc, setDoc, increment
+  doc, updateDoc, setDoc, increment, getDoc,
+  query, where, writeBatch, deleteField
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
@@ -615,6 +867,95 @@ let customCategoryStatus = {
   Indu: true
 };
 
+/* ---------- SCALABILITY HELPERS ---------- */
+
+// ONE-TIME MIGRATION: Run this in console: window.migrateCounters()
+window.migrateCounters = async function() {
+    console.log("Starting Counter Migration (Strict Format)...");
+    const sales = await getSalesOnce(true); 
+
+    const counts = {};
+    const batch = writeBatch(db);
+    
+    sales.forEach(s => {
+        let dateKey;
+        // Even if dateKey exists, we regenerate it to be safe and consistent
+        // We use the 'date' string (ISO) and force it to YYYY-MM-DD local logic
+        const dateObj = new Date(s.date);
+        
+        // STRICT FORMATTING: YYYY-MM-DD
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        dateKey = `${year}-${month}-${day}`;
+
+        if (counts[dateKey]) {
+            counts[dateKey]++;
+        } else {
+            counts[dateKey] = 1;
+        }
+    });
+
+    // 3. Save to Firestore
+    await setDoc(doc(db, 'meta_data', 'sales_counter'), counts);
+    alert("Migration Finished! Counters updated.");
+}
+
+async function fetchSalesByRange(startDate, endDate) {
+  // Inputs: "2025-12-27" (YYYY-MM-DD) or Date objects
+  
+  // Helper: Force string YYYY-MM-DD into Local Midnight Date Object
+  const getLocalStart = (val) => {
+     if(val instanceof Date) {
+        // FIX: Clone the date object to prevent mutation of original reference
+        const d = new Date(val); 
+        d.setHours(0,0,0,0);
+        return d;
+     }
+     // Manually parse YYYY-MM-DD to avoid UTC shift
+     const p = val.split('-');
+     return new Date(p[0], p[1]-1, p[2]);
+  }
+
+  const start = getLocalStart(startDate);
+  
+  const end = getLocalStart(endDate);
+  end.setHours(23, 59, 59, 999);
+
+  // Firestore Query
+  const q = query(
+    collection(db, 'sales'),
+    where('date', '>=', start.toISOString()),
+    where('date', '<=', end.toISOString())
+  );
+
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// ================== HELPER TO FORCE YYYY-MM-DD ==================
+function standardizeDate(dateStr) {
+  if(!dateStr) return '';
+  let d = dateStr.toString().trim(); // Convert to string and trim whitespace
+
+  // Handle slashes MM/DD/YYYY -> YYYY-MM-DD
+  if(d.includes('/')) {
+     const parts = d.split('/');
+     if(parts.length === 3) {
+        // parts[0] = M, parts[1] = D, parts[2] = Y
+        return `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+     }
+  }
+  // Handle dashes YYYY-M-D -> YYYY-MM-DD
+  if(d.includes('-')) {
+     const parts = d.split('-');
+     if(parts.length === 3) {
+        return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+     }
+  }
+  return d;
+}
+
 
 /* ---------- LOGIN ---------- */
 async function login() {
@@ -630,7 +971,7 @@ localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
     showSection('inventory');
     await loadInventory();
     await loadCashiers();
-    await loadSales();
+    await loadSales(); // Loads via counter now
     msg.innerText = '';
     return;
   }
@@ -638,7 +979,10 @@ localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
   const cashier = cashiers.find(c => c.username === u && c.password === p);
 
   if (cashier) {
-  currentUser = { role: 'cashier', name: u };
+  // ✅ FIX: Use the exact username from the database (e.g. "Diana"), not what user typed ("diana")
+  // This ensures document IDs in 'reported_dates' match correctly.
+  currentUser = { role: 'cashier', name: cashier.username };
+  
   localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
 
   document.getElementById('login').classList.add('hidden');
@@ -864,7 +1208,8 @@ async function loadCashiers() {
   const cashiers = cashiersSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   const list = document.getElementById('cashierList'); list.innerHTML = '';
   cashiers.forEach((c, i) => {
-    list.innerHTML += `<div class="cashier-tab">${c.username} <div classh="cashier-tab-btn"><button onclick="editCashier('${c.id}')">Edit</button> <button onclick="deleteCashier('${c.id}')">Delete</button></div></div>`;
+    // UPDATED: Now calls openEditCashierModal instead of the old prompt function
+    list.innerHTML += `<div class="cashier-tab">${c.username} <div classh="cashier-tab-btn"><button onclick="openEditCashierModal('${c.id}')">Edit</button> <button onclick="deleteCashier('${c.id}')">Delete</button></div></div>`;
   });
 }
 
@@ -885,22 +1230,75 @@ async function deleteCashier(id) {
   }
 }
 
-async function editCashier(id) {
-  const newName = prompt('New username');
-  const newPass = prompt('New password');
-  if (newName && newPass) {
-    await updateDoc(doc(db, 'cashiers', id), { username: newName, password: newPass });
-    await loadCashiers();
-  }
+// ===== NEW EDIT CASHIER MODAL LOGIC =====
+async function openEditCashierModal(id) {
+  const cashiers = await getCashiersOnce();
+  const cashier = cashiers.find(c => c.id === id);
+  if(!cashier) return;
+
+  document.getElementById('editCashierId').value = id;
+  document.getElementById('editCashierName').value = cashier.username;
+  document.getElementById('editCashierPass').value = cashier.password;
+
+  document.getElementById('editCashierModal').style.display = 'flex';
 }
 
-/* ---------- ADMIN SALES ---------- */
-async function loadSales() {
-  const catBtns = document.getElementById('adminCategoryButtons');
+function closeEditCashierModal() {
+  document.getElementById('editCashierModal').style.display = 'none';
+}
 
-  catBtns.innerHTML = '';
+async function saveEditCashier() {
+  const id = document.getElementById('editCashierId').value;
+  const newName = document.getElementById('editCashierName').value.trim();
+  const newPass = document.getElementById('editCashierPass').value.trim();
+
+  if(!newName || !newPass) {
+    return alert("Please fill all fields");
+  }
+
+  await updateDoc(doc(db, 'cashiers', id), { username: newName, password: newPass });
   
+  cashiersCache = null; // Clear cache to ensure refresh
+  await loadCashiers();
+  closeEditCashierModal();
+}
+// =========================================
 
+/* ---------- ADMIN SALES (UPDATED FOR REDESIGN) ---------- */
+async function loadSales() {
+  // 1. Get the Counters
+  const counterSnap = await getDoc(doc(db, 'meta_data', 'sales_counter'));
+  
+  let availableDates = [];
+  if (counterSnap.exists()) {
+    const data = counterSnap.data();
+    availableDates = Object.keys(data).filter(dateKey => data[dateKey] > 0);
+    availableDates.sort(); 
+  }
+
+  const fromSel = document.getElementById('adminDateFrom');
+  const toSel = document.getElementById('adminDateTo');
+  
+  fromSel.innerHTML = "";
+  toSel.innerHTML = "";
+
+  availableDates.forEach(d => {
+      const opt1 = document.createElement('option');
+      opt1.value = d;
+      opt1.innerText = d; 
+      fromSel.appendChild(opt1);
+
+      const opt2 = opt1.cloneNode(true);
+      toSel.appendChild(opt2);
+  });
+
+  if(availableDates.length > 0) {
+      fromSel.value = availableDates[availableDates.length - 1];
+      toSel.value = availableDates[availableDates.length - 1];
+  }
+
+  const catBtns = document.getElementById('adminCategoryButtons');
+  catBtns.innerHTML = '';
   const allBtn = document.createElement('button');
   allBtn.innerText = 'All';
   allBtn.onclick = () => filterSales('All');
@@ -913,179 +1311,194 @@ async function loadSales() {
     catBtns.appendChild(btn);
   });
 
-  // ✅ Build Date Dropdown
-  const sales = await getSalesOnce();
+  const cashierSelect = document.getElementById('adminCashierFilter');
+  cashierSelect.innerHTML = '<option value="All">All Cashiers</option>';
+  const cashiers = await getCashiersOnce();
+  cashiers.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.username;
+    opt.innerText = c.username;
+    cashierSelect.appendChild(opt);
+  });
   
-  // ---- Build Cashier Dropdown ----
-const cashierSelect = document.getElementById('adminCashierFilter');
-cashierSelect.innerHTML = '<option value="All">All Cashiers</option>';
+  currentAdminCashier = 'All';
+  cashierSelect.onchange = () => {
+    currentAdminCashier = cashierSelect.value;
+    filterSales(currentAdminFilter);
+  };
 
-const cashiers = await getCashiersOnce();
-cashiers.forEach(c => {
-  const opt = document.createElement('option');
-  opt.value = c.username;
-  opt.innerText = c.username;
-  cashierSelect.appendChild(opt);
-});
-
-// Default
-currentAdminCashier = 'All';
-
-// Re-filter on change
-cashierSelect.onchange = () => {
-  currentAdminCashier = cashierSelect.value;
-  filterSales(currentAdminFilter);
-};
-
+  fromSel.onchange = () => filterSales(currentAdminFilter);
+  toSel.onchange   = () => filterSales(currentAdminFilter);
   
-  
-
-  const uniqueDates = [...new Set(
-    sales.map(s => new Date(s.date).toLocaleDateString())
-  )];
-
-  // ---- Admin From-To Dropdown Build ----
-const fromSel = document.getElementById('adminDateFrom');
-const toSel   = document.getElementById('adminDateTo');
-
-fromSel.innerHTML = "";
-toSel.innerHTML = "";
-
-// Sort oldest → newest
-uniqueDates.sort((a,b)=> new Date(a) - new Date(b));
-
-uniqueDates.forEach(d => {
-  const opt1 = document.createElement('option');
-  opt1.value = d;
-  opt1.innerText = d;
-  fromSel.appendChild(opt1);
-
-  const opt2 = opt1.cloneNode(true);
-  toSel.appendChild(opt2);
-});
-
-// Default range
-fromSel.value = uniqueDates[uniqueDates.length - 1];
-toSel.value = uniqueDates[uniqueDates.length - 1];
-
-// Rebuild on change
-fromSel.onchange = () => filterSales(currentAdminFilter);
-toSel.onchange   = () => filterSales(currentAdminFilter);
-await filterSales('All');
+  await filterSales('All');
 }
 
 
 async function filterSales(cat) {
   currentAdminFilter = cat;
-  let sales = await getSalesOnce();
   
-  // highlight active category
   document.querySelectorAll('#adminCategoryButtons button').forEach(btn => {
     btn.classList.toggle('active-cat', btn.innerText === cat);
   });
- 
-// ✅ SORT BY DATE (NEWEST FIRST)
-sales.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const fromStr = document.getElementById('adminDateFrom').value;
+  const toStr   = document.getElementById('adminDateTo').value;
+
+  if(!fromStr || !toStr) {
+      document.getElementById('salesList').innerHTML = 'No dates with sales found.';
+      document.getElementById('adminGrandTotal').innerText = `Total: ₱0`;
+      return;
+  }
+
+  let sales = await fetchSalesByRange(fromStr, toStr);
+  sales.sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const list = document.getElementById('salesList'); list.innerHTML = '';
   let grandTotal = 0;
 
   for (const s of sales) {
      if (currentAdminCashier !== 'All' && s.cashier !== currentAdminCashier) {
-  continue;
-}
-    // ✅ Filter by DATE
-// ---- Apply From-To Date Range ----
-const fromStr = document.getElementById('adminDateFrom').value;
-const toStr   = document.getElementById('adminDateTo').value;
+       continue;
+     }
 
-const from = new Date(fromStr + ' 00:00');
-const to   = new Date(toStr   + ' 23:59');
-
-const saleD = new Date(new Date(s.date).toLocaleDateString());
-
-if (saleD < from || saleD > to) continue;
-
-
-
-// ✅ Filter by CATEGORY
-let filtered = s.products;
-if (cat !== 'All') {
-  filtered = s.products.filter(p => p.category === cat);
-}
+    let filtered = s.products;
+    if (cat !== 'All') {
+      filtered = s.products.filter(p => p.category === cat);
+    }
 
     if (filtered.length === 0) continue;
 
-    const div = document.createElement('div');
-    div.style.borderBottom = '1px solid #e6f7ff';
-    div.style.padding = '8px';
-    div.style.marginBottom = '6px';
+    // ================== NEW CARD RENDER (Admin) ==================
+    const ticket = document.createElement('div');
+    ticket.className = 'sale-ticket';
 
-    
-
+    // Header
     const header = document.createElement('div');
-header.style.display = 'flex';
-header.style.justifyContent = 'space-between';
+    header.className = 'ticket-header';
+    header.innerHTML = `
+        <div class="ticket-meta">
+            <span class="meta-time">${new Date(s.date).toLocaleString()}</span>
+            <span class="meta-cashier">Cashier: ${s.cashier}</span>
+        </div>
+    `;
 
-const title = document.createElement('strong');
-title.innerText = `${new Date(s.date).toLocaleString()} - ${s.cashier}`;
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-delete';
+    delBtn.innerText = '×'; // Special X character
+    
+    delBtn.onclick = async () => {
+      if (!confirm('Delete this transaction?')) return;
 
-const delBtn = document.createElement('button');
-delBtn.innerText = 'X';
-delBtn.className = 'small-x';
+      const products = await getProductsOnce();
+      for (const p of s.products) {
+        // ✅ BUG FIX: Only return stock if the sold item has a valid Product ID
+        if (p.productId) {
+            await updateDoc(doc(db, 'products', p.productId), {
+              stock: increment(p.qty)
+            });
+            productsCache = null;
+        } else if (p.productId === null) {
+            // New custom item -> do nothing
+        } else {
+             // Legacy fallback (optional): checks name for old transactions
+             const prod = products.find(pr =>
+                pr.name === p.name && pr.category === p.category
+             );
+             if (prod) {
+               await updateDoc(doc(db, 'products', prod.id), {
+                  stock: increment(p.qty)
+               });
+               productsCache = null;
+             }
+        }
+      }
 
-delBtn.onclick = async () => {
-  if (!confirm('Delete this transaction?')) return;
-
-  // restore stock
-  const products = await getProductsOnce();
-
-
-  for (const p of s.products) {
-    const prod = products.find(pr =>
-      pr.name === p.name && pr.category === p.category
-    );
-    if (prod) {
-      await updateDoc(doc(db, 'products', prod.id), {
-        stock: increment(p.qty)
+      let dateKey;
+      if(s.dateKey) {
+        dateKey = s.dateKey;
+      } else {
+        const dateObj = new Date(s.date);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        dateKey = `${year}-${month}-${day}`;
+      }
+      
+      // ✅ 1. UPDATE SUMMARY (Subtract)
+      const summaryId = `${dateKey}_${s.cashier}`;
+      const summaryRef = doc(db, 'daily_summaries', summaryId);
+      
+      const summaryUpdates = { GrandTotal: increment(-s.total) };
+      // Decrement individual categories
+      s.products.forEach(p => {
+          const catKey = p.category; // Sportswear, Silver, Indu
+          const subtotal = p.qty * p.price;
+          if(!summaryUpdates[catKey]) summaryUpdates[catKey] = 0;
+          // Note: using increment(number) - we must pass negative
+          summaryUpdates[catKey] = increment(-subtotal);
       });
-      productsCache = null;
+      await setDoc(summaryRef, summaryUpdates, { merge: true });
 
-    }
-  }
 
-  await deleteDoc(doc(db, 'sales', s.id));
-  salesCache = null;
-  await filterSales(currentAdminFilter);
-};
+      await updateDoc(doc(db, 'meta_data', 'sales_counter'), {
+          [dateKey]: increment(-1)
+      });
 
-header.appendChild(title);
-header.appendChild(delBtn);
-div.appendChild(header);
+      await deleteDoc(doc(db, 'sales', s.id));
+      salesCache = null; 
+      
+      const counterSnap = await getDoc(doc(db, 'meta_data', 'sales_counter'));
+      if(counterSnap.exists() && counterSnap.data()[dateKey] <= 0) {
+         await loadSales(); 
+      } else {
+         await filterSales(currentAdminFilter);
+      }
+    };
 
+    header.appendChild(delBtn);
+    ticket.appendChild(header);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'ticket-body';
 
     let saleTotal = 0;
     filtered.forEach(p => {
-      const line = document.createElement('div');
-      line.innerText = `${p.name} (${p.qty}) [${p.category}] ₱${p.qty * p.price}`;
-      div.appendChild(line);
+      // Map badge class
+      let badgeClass = 'other';
+      if(p.category === 'Sportswear') badgeClass = 'sport';
+      if(p.category === 'Silver') badgeClass = 'silver';
+      if(p.category === 'Indu') badgeClass = 'indu';
+
+      const itemRow = document.createElement('div');
+      itemRow.className = 'ticket-item';
+      itemRow.innerHTML = `
+        <div class="item-info">
+            <span class="badge ${badgeClass}">${p.category}</span>
+            <span>${p.name}</span>
+            <span class="item-qty">x${p.qty}</span>
+        </div>
+        <span>₱${p.qty * p.price}</span>
+      `;
+      body.appendChild(itemRow);
       saleTotal += (p.qty * p.price);
     });
+    ticket.appendChild(body);
 
-    const totalLine = document.createElement('div');
-    totalLine.style.marginTop = '6px';
-    totalLine.style.fontWeight = '700';
-    totalLine.innerText = `Transaction total: ₱${saleTotal}`;
-    div.appendChild(totalLine);
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'ticket-footer';
+    footer.innerHTML = `
+        <span class="total-label">TOTAL AMOUNT</span>
+        <span class="total-price">₱${saleTotal}</span>
+    `;
+    ticket.appendChild(footer);
 
     grandTotal += saleTotal;
-    list.appendChild(div);
+    list.appendChild(ticket);
+    // =============================================================
   }
   
-  // ✅ Filter by CASHIER
-
-
-
    document.getElementById('adminGrandTotal').innerText = `Total: ₱${grandTotal}`;
 
 }
@@ -1139,18 +1552,45 @@ async function filterCashierProducts(category) {
 
 
 function displayCashierProducts(products) {
-  const grid = document.getElementById('productGrid'); grid.innerHTML = '';
-  products.forEach((p, i) => {
-    grid.innerHTML += `<div class="product" onclick="openModal('${p.id}')"><div><strong>${p.name}</strong></div><div>₱${p.price}</div><div>Stock: ${p.stock}</div></div>`;
+  const grid = document.getElementById('productGrid');
+  grid.innerHTML = '';
+
+  products.forEach((p) => {
+    // 1. Get Initials
+    const initials = p.category ? p.category.substring(0, 2) : '??';
+
+    // 2. Determine Stock Class
+    let stockClass = 'stock-high';
+    let stockText = `${p.stock} Left`;
+    if (p.stock <= 0) {
+        stockClass = 'stock-out';
+        stockText = 'Out';
+    } else if (p.stock < 10) {
+        stockClass = 'stock-low';
+    }
+
+    grid.innerHTML += `
+    <div class="product" onclick="openModal('${p.id}')">
+        <div class="product-top">
+            <div class="category-avatar">${initials}</div>
+            <div class="stock-pill ${stockClass}">${stockText}</div>
+        </div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-price">₱${p.price}</div>
+    </div>`;
   });
-if (customCategoryStatus[currentCashierCategory] !== false) {
-  grid.innerHTML += `
-    <div class="product custom-product" onclick="openCustomModal()">
-      <div><strong>Custom Transaction</strong></div>
-      <div>Tap to add</div>
-    </div>
-  `;
-}
+
+  // Custom Transaction Card
+  if (customCategoryStatus[currentCashierCategory] !== false) {
+    grid.innerHTML += `
+      <div class="product custom-product" onclick="openCustomModal()">
+        <div class="custom-content">
+            <div class="custom-icon">+</div>
+            <div style="font-weight:600; font-size:14px;">Custom Amount</div>
+        </div>
+      </div>
+    `;
+  }
 }
 
 /* ---------- MODAL ---------- */
@@ -1198,31 +1638,35 @@ async function modalAddToCart() {
   
   try {
     let qtyInput = document.getElementById('modalQty').value.trim();
-   let qty = parseInt(qtyInput);
+    let qty = parseInt(qtyInput);
    
-   // ✅ Fix NaN / empty / invalid quantity
-   if (isNaN(qty) || qty <= 0) {
-     qty = 1;
-     document.getElementById('modalQty').value = 1;
-   }
+    // ✅ Fix NaN / empty / invalid quantity
+    if (isNaN(qty) || qty <= 0) {
+      qty = 1;
+      document.getElementById('modalQty').value = 1;
+    }
     const price = parseFloat(document.getElementById('modalPrice').value) || 0;
+    
     let name, category;
+    let productId = null; // ✅ 1. Track Product ID
 
     if (modalProductIndex === null) {
+      // CUSTOM ITEM
       name = document.getElementById('modalCustomName').value.trim() || 'Custom';
       category = currentCashierCategory;
     } else {
+      // REAL INVENTORY ITEM
+      productId = modalProductIndex; // Capture ID
+      
       const productRef = doc(db, 'products', modalProductIndex);
       const products = await getProductsOnce();
       const product = products.find(p => p.id === modalProductIndex);
-
 
       if (product.stock < qty) {
         alert('Not enough stock!');
         return;
       }
 
-      // ✅ SAFE STOCK DECREMENT
       await updateDoc(productRef, {
         stock: product.stock - qty
       });
@@ -1231,7 +1675,9 @@ async function modalAddToCart() {
       category = product.category;
     }
 
-    cart.push({ name, price, qty, category });
+    // ✅ 2. Add productId to Cart Object
+    cart.push({ name, price, qty, category, productId });
+    
     renderCart();
     saveCartToStorage();
     // reset modal
@@ -1277,20 +1723,13 @@ async function removeCartItem(i) {
     const item = cart[i];
     if (!item) return;
 
-    if (item.name !== 'Custom') {
-      const products = await getProductsOnce();
-      const prod = products.find(p =>
-  p.name === item.name && p.category === item.category
-);
-
-if (prod) {
-  await updateDoc(
-    doc(db, 'products', prod.id),
-    { stock: prod.stock + item.qty }
-  );
-  productsCache = null; // ✅ refresh stock display
-}
-
+    // ✅ 3. CHECK PRODUCT ID INSTEAD OF NAME (CART REMOVAL FIX)
+    // Only return stock if the item has a valid Product ID
+    if (item.productId) {
+      await updateDoc(doc(db, 'products', item.productId), {
+        stock: increment(item.qty) // Atomic increment is safer
+      });
+      productsCache = null; // Refresh cache
     }
 
     cart.splice(i, 1);
@@ -1307,14 +1746,25 @@ if (prod) {
 async function checkout() {
   if (cart.length === 0) return alert('Cart empty');
 
+  // Loophole Check: Negative Stock Race Condition
+  const products = await getProductsOnce(true); 
+  for (const item of cart) {
+     if(!item.productId) continue; // Skip check for custom items
+     const prod = products.find(p => p.id === item.productId);
+     if(prod && prod.stock < 0) { 
+        return alert(`Error: ${item.name} is out of stock! Transaction cancelled.`);
+     }
+  }
+
   const now = new Date();
 
-  // ✅ MERGE DUPLICATE ITEMS (PRICE-SAFE)
+  // ✅ 4. MERGE ITEMS SAFELY (INCLUDE ID IN KEY)
    const merged = {};
    
    for (const item of cart) {
-     // 👇 price included so different prices won't merge
-     const key = `${item.name}_${item.category}_${item.price}`;
+     const pid = item.productId || 'custom'; // Use 'custom' if null
+     // Unique Key: ID + Name + Price
+     const key = `${pid}_${item.name}_${item.price}`;
    
      if (!merged[key]) {
        merged[key] = { ...item };
@@ -1331,104 +1781,214 @@ async function checkout() {
     saleTotal += (p.qty * p.price);
   });
 
-  await addDoc(collection(db, 'sales'), {
+  const startOfDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const dateKey = `${year}-${month}-${day}`;
+
+  const batch = writeBatch(db);
+
+  const saleRef = doc(collection(db, 'sales'));
+  const saleData = {
     cashier: currentUser.name,
-    date: now.toISOString(),
+    date: now.toISOString(),      
+    saleDate: startOfDay.toISOString(),
+    dateKey: dateKey, 
     products: productsCopy,
     total: saleTotal
+  };
+
+  batch.set(saleRef, saleData);
+
+  const counterRef = doc(db, 'meta_data', 'sales_counter');
+  batch.set(counterRef, { [dateKey]: increment(1) }, { merge: true });
+
+  // ✅ 5. UPDATE DAILY SUMMARY (Increment)
+  const summaryId = `${dateKey}_${currentUser.name}`;
+  const summaryRef = doc(db, 'daily_summaries', summaryId);
+  
+  const summaryUpdates = {
+      date: dateKey,
+      cashier: currentUser.name,
+      GrandTotal: increment(saleTotal)
+  };
+  
+  // Aggregate categories for summary
+  productsCopy.forEach(p => {
+      const catKey = p.category; // Sportswear, Silver, Indu
+      const subtotal = p.qty * p.price;
+      if(!summaryUpdates[catKey]) summaryUpdates[catKey] = 0;
+      summaryUpdates[catKey] = increment(subtotal);
   });
+  
+  batch.set(summaryRef, summaryUpdates, { merge: true });
+
+  await batch.commit();
+
   salesCache = null;
   cart = [];
   renderCart();
   localStorage.removeItem('pos_cart');
   await loadDailySales();
-  await loadSales();
-
+  
   alert('Transaction saved!');
 }
 
 
-/* ---------- DAILY SALES ---------- */
+/* ---------- DAILY SALES (UPDATED FOR REDESIGN) ---------- */
 async function loadDailySales() {
-  let sales = await getSalesOnce();
-
-// ✅ SORT BY DATE (NEWEST FIRST)
-sales.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const today = new Date();
+  
+  let sales = await fetchSalesByRange(today, today);
+  sales.sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const list = document.getElementById('dailySalesList'); list.innerHTML = '';
   document.getElementById('dailyTotalBox').innerText = 'Daily Total: ₱0';
-  const today = new Date().toLocaleDateString();
-  const daily = sales.filter(s => new Date(s.date).toLocaleDateString() === today && s.cashier === currentUser.name);
+  
+  const daily = sales.filter(s => s.cashier === currentUser.name);
 
   let dailyTotal = 0;
   for (const s of daily) {
-    const div = document.createElement('div');
-    div.style.borderBottom = '1px solid #eaf6ff';
-    div.style.padding = '8px';
-    div.style.marginBottom = '6px';
+    // Check if this transaction has items of the current category
+    let transactionMatchesFilter = false;
+    let saleTotal = 0;
 
+    s.products.forEach(p => {
+        if(currentDailyCategory === 'All' || p.category === currentDailyCategory) {
+            transactionMatchesFilter = true;
+            saleTotal += (p.qty * p.price);
+        }
+    });
+
+    if(!transactionMatchesFilter && currentDailyCategory !== 'All') continue;
+
+    // ================== NEW CARD RENDER (Cashier) ==================
+    const ticket = document.createElement('div');
+    ticket.className = 'sale-ticket';
+
+    // Header
     const header = document.createElement('div');
-    header.style.display = 'flex';
-    header.style.justifyContent = 'space-between';
-    header.style.alignItems = 'center';
-
-    const title = document.createElement('strong');
-    title.innerText = `${new Date(s.date).toLocaleString()}   ${s.cashier}`;
-
+    header.className = 'ticket-header';
+    header.innerHTML = `
+        <div class="ticket-meta">
+            <span class="meta-time">${new Date(s.date).toLocaleString()}</span>
+            <span class="meta-cashier">Cashier: ${s.cashier}</span>
+        </div>
+    `;
 
     const delBtn = document.createElement('button');
-    delBtn.className = 'small-x';
-    delBtn.innerText = 'X';
+    delBtn.className = 'btn-delete';
+    delBtn.innerText = '×'; 
     delBtn.onclick = async () => {
       if (confirm('Delete this transaction?')) {
-        // increment stock back
         const products = await getProductsOnce();
         for (const pItem of s.products) {
-          const prod = products.find(pr => pr.name === pItem.name && pr.category === pItem.category);
-            if (prod) {
-           await updateDoc(doc(db, 'products', prod.id), {
-             stock: increment(pItem.qty)
-           });
-           productsCache = null;
-         }
-
+          // ✅ BUG FIX: Only return stock if the sold item has a valid Product ID
+          if (pItem.productId) {
+               await updateDoc(doc(db, 'products', pItem.productId), {
+                 stock: increment(pItem.qty)
+               });
+               productsCache = null;
+          } else if (pItem.productId === null) {
+               // New Custom item -> do nothing
+          } else {
+               // Legacy fallback for old transactions
+               const prod = products.find(pr => pr.name === pItem.name && pr.category === pItem.category);
+               if (prod) {
+                 await updateDoc(doc(db, 'products', prod.id), {
+                   stock: increment(pItem.qty)
+                 });
+                 productsCache = null;
+               }
+          }
         }
+
+        let dateKey;
+        if(s.dateKey) {
+            dateKey = s.dateKey;
+        } else {
+            const dateObj = new Date(s.date);
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            dateKey = `${year}-${month}-${day}`;
+        }
+        
+        // ✅ 6. UPDATE SUMMARY (Subtract on Delete)
+        const summaryId = `${dateKey}_${s.cashier}`;
+        const summaryRef = doc(db, 'daily_summaries', summaryId);
+      
+        const summaryUpdates = { GrandTotal: increment(-s.total) };
+        s.products.forEach(p => {
+          const catKey = p.category; // Sportswear, Silver, Indu
+          const subtotal = p.qty * p.price;
+          if(!summaryUpdates[catKey]) summaryUpdates[catKey] = 0;
+          summaryUpdates[catKey] = increment(-subtotal);
+        });
+        await setDoc(summaryRef, summaryUpdates, { merge: true });
+
+
+        await updateDoc(doc(db, 'meta_data', 'sales_counter'), {
+            [dateKey]: increment(-1)
+        });
+
         await deleteDoc(doc(db, 'sales', s.id));
         salesCache = null;
         await loadDailySales();
-        await loadSales();
         await loadProducts();
       }
     };
 
-    header.appendChild(title);
     header.appendChild(delBtn);
-    div.appendChild(header);
+    ticket.appendChild(header);
 
-    let saleTotal = 0;
+    // Body
+    const body = document.createElement('div');
+    body.className = 'ticket-body';
+
+    // Re-loop to draw items
     s.products
-  .filter(p => currentDailyCategory === 'All' || p.category === currentDailyCategory)
-  .forEach(p => {
-    const pdiv = document.createElement('div');
-    pdiv.innerText = `${p.name} (${p.qty}) [${p.category}] ₱${p.qty * p.price}`;
-    div.appendChild(pdiv);
-    saleTotal += (p.qty * p.price);
-  });
-// Skip this transaction if nothing matched the category
-   if (saleTotal === 0 && currentDailyCategory !== 'All') {
-       continue;
-   }
-    const totLine = document.createElement('div');
-    totLine.style.fontWeight = '700';
-    totLine.style.marginTop = '6px';
-    totLine.innerText = `Transaction total: ₱${saleTotal}`;
-    div.appendChild(totLine);
+      .filter(p => currentDailyCategory === 'All' || p.category === currentDailyCategory)
+      .forEach(p => {
+        let badgeClass = 'other';
+        if(p.category === 'Sportswear') badgeClass = 'sport';
+        if(p.category === 'Silver') badgeClass = 'silver';
+        if(p.category === 'Indu') badgeClass = 'indu';
+
+        const itemRow = document.createElement('div');
+        itemRow.className = 'ticket-item';
+        itemRow.innerHTML = `
+            <div class="item-info">
+                <span class="badge ${badgeClass}">${p.category}</span>
+                <span>${p.name}</span>
+                <span class="item-qty">x${p.qty}</span>
+            </div>
+            <span>₱${p.qty * p.price}</span>
+        `;
+        body.appendChild(itemRow);
+      });
+
+    ticket.appendChild(body);
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'ticket-footer';
+    footer.innerHTML = `
+        <span class="total-label">TOTAL AMOUNT</span>
+        <span class="total-price">₱${saleTotal}</span>
+    `;
+    ticket.appendChild(footer);
 
     dailyTotal += saleTotal;
-    list.appendChild(div);
+    list.appendChild(ticket);
+    // =============================================================
   }
-
-  
   
   document.getElementById('dailyTotalBox').innerText = `Daily Total: ₱${dailyTotal}`;
    buildDailyCategoryButtons();
@@ -1485,38 +2045,62 @@ function closeSalesHistory() {
 
 
 async function buildSalesHistory() {
-  const sales = (await getSalesOnce())
-  .filter(s => s.cashier === currentUser.name);
+    // 1. Fetch ALL summaries for this cashier first (Needed for Date Calculation AND Table)
+    const summaryQuery = query(
+        collection(db, 'daily_summaries'),
+        where('cashier', '==', currentUser.name)
+    );
+    
+    const snaps = await getDocs(summaryQuery);
+    let summaryDocs = snaps.docs.map(d => d.data());
 
-// 🔒 Get reported dates for cashier
-const repDocSnap = await getDocs(collection(db, 'reported_dates'));
-const repDoc = repDocSnap.docs.find(d => d.id === currentUser.name);
+    // 2. Extract Available Dates strictly from THIS Cashier's summaries
+    // This fixes the issue where global sales dates (from other cashiers) show up here.
+    let availableDates = summaryDocs.map(s => s.date).sort();
 
-const reportedDates = repDoc ? repDoc.data().dates || [] : [];
+    // 3. Get reported dates for cashier (to filter out)
+    const repDocSnap = await getDocs(collection(db, 'reported_dates'));
+    
+    // ✅ ROBUST: Find the report document safely by ignoring case sensitivity
+    let repDoc = repDocSnap.docs.find(d => d.id === currentUser.name);
+    if (!repDoc) {
+        repDoc = repDocSnap.docs.find(d => d.id.toLowerCase() === currentUser.name.toLowerCase());
+    }
 
-  const fromSel = document.getElementById('historyDateFrom');
-  const toSel = document.getElementById('historyDateTo');
-  const tbody = document.querySelector('#historyTable tbody');
-  const totalsBox = document.getElementById('historyTotals');
+    // ✅ ROBUST: Handle ANY date format using the helper function
+    let reportedDates = [];
+    if(repDoc && repDoc.data().dates) {
+        reportedDates = repDoc.data().dates.map(standardizeDate);
+    }
+    
+    // Ensure available dates are also standard
+    let cleanAvailableDates = availableDates.map(standardizeDate);
 
-  tbody.innerHTML = '';
+    // Filter available dates: Remove if reported
+    // Using simple string comparison after standardization
+    const dates = cleanAvailableDates.filter(d => !reportedDates.includes(d));
 
-  // ✅ Create unique date list FIRST
-  const dates = [...new Set(
-    sales.map(s => new Date(s.date).toLocaleDateString()).filter(d => !reportedDates.includes(d)) // ✅ hide reported dates
-  )].sort((a,b)=> new Date(a) - new Date(b));
+    const fromSel = document.getElementById('historyDateFrom');
+    const toSel = document.getElementById('historyDateTo');
+    const tbody = document.querySelector('#historyTable tbody');
+    const totalsBox = document.getElementById('historyTotals');
 
-  if (dates.length === 0) {
-    totalsBox.innerText = 'No sales data';
-    return;
-  }
+    tbody.innerHTML = '';
+
+    if (dates.length === 0) {
+        totalsBox.innerText = 'No unreported sales data';
+        return;
+    }
 
   // ✅ Fill dropdowns only once
   if (!fromSel.dataset.filled) {
     fromSel.innerHTML = '';
     toSel.innerHTML = '';
+    
+    // Use Set to remove duplicates after standardization
+    const uniqueDates = [...new Set(dates)].sort();
 
-    dates.forEach(d => {
+    uniqueDates.forEach(d => {
       const opt1 = document.createElement('option');
       opt1.value = d;
       opt1.innerText = d;
@@ -1526,8 +2110,8 @@ const reportedDates = repDoc ? repDoc.data().dates || [] : [];
       toSel.appendChild(opt2);
     });
 
-    fromSel.value = dates[0];
-    toSel.value   = dates[dates.length - 1];
+    fromSel.value = uniqueDates[0];
+    toSel.value   = uniqueDates[uniqueDates.length - 1];
 
     fromSel.dataset.filled = 'true';
 
@@ -1536,102 +2120,39 @@ const reportedDates = repDoc ? repDoc.data().dates || [] : [];
     toSel.onchange   = buildSalesHistory;
   }
 
-  const fromDate = new Date(fromSel.value);
-  const toDate   = new Date(toSel.value);
-  toDate.setHours(23, 59, 59, 999);
+  // 4. Client-side filtering for the table rows based on dropdown selection
+  let filteredDocs = summaryDocs.filter(s => {
+    const sDate = standardizeDate(s.date);
+    const fDate = standardizeDate(fromSel.value);
+    const tDate = standardizeDate(toSel.value);
+    return sDate >= fDate && sDate <= tDate;
+  });
   
+  // Sort by Date
+  filteredDocs.sort((a,b) => new Date(a.date) - new Date(b.date));
 
-
-  const map = {};
   let grandTotal = 0;
   let totSilver = 0, totSport = 0, totIndu = 0;
 
-  
-   // ✅ LOAD EXPENSES (NO DATE FILTER – FIXED)
-const expenseListDiv = document.getElementById('expenseList');
-expenseListDiv.innerHTML = '';
+  // Build Table from Summaries
+  filteredDocs.forEach(sum => {
+      const silver = sum.Silver || 0;
+      const sport = sum.Sportswear || 0;
+      const indu  = sum.Indu || 0;
+      
+      totSilver += silver;
+      totSport += sport;
+      totIndu += indu;
+      grandTotal += (sum.GrandTotal || 0);
 
-const expenses = (await getExpensesOnce())
-  .filter(e => e.cashier === currentUser.name);
-
-if (expenses.length === 0) {
-  document.getElementById("List-txt").innerText = "No Expenses";
-} else {
-  document.getElementById("List-txt").innerText = "Expenses List:";
-}
-
-let totalExpenses = 0;
-
-expenses.forEach(e => {
-  const div = document.createElement('div');
-  div.style.padding = '6px';
-  div.style.borderBottom = '1px solid #e6f7ff';
-  div.style.display = 'flex';
-  div.style.justifyContent = 'space-between';
-
-  const text = document.createElement('span');
-  text.innerText = `${e.description}: ₱${e.amount}`;
-  div.appendChild(text);
-
-  const delBtn = document.createElement('button');
-  delBtn.innerText = 'X';
-  delBtn.style.background = 'var(--danger)';
-  delBtn.style.color = '#fff';
-  delBtn.style.border = 'none';
-  delBtn.style.borderRadius = '4px';
-  delBtn.style.padding = '2px 6px';
-
-  delBtn.onclick = async () => {
-    if (!confirm('Delete this expense?')) return;
-    await deleteDoc(doc(db, 'expenses', e.id));
-    expensesCache = null;
-    await buildSalesHistory();
-  };
-
-  div.appendChild(delBtn);
-  expenseListDiv.appendChild(div);
-
-  totalExpenses += e.amount;
-});
-
-   
-  sales.forEach(s => {
-    const d = new Date(s.date);
-    const key = d.toLocaleDateString();
-
-    if (d < fromDate || d > toDate) return;
-
-    if (!map[key]) {
-      map[key] = { Silver: 0, Sportswear: 0, Indu: 0 };
-    }
-
-    s.products.forEach(p => {
-      if (map[key][p.category] !== undefined) {
-        const val = p.qty * p.price;
-        map[key][p.category] += val;
-      }
-    });
-  });
-
-  Object.keys(map).sort((a,b)=> new Date(a)-new Date(b)).forEach(date => {
-    const silver = map[date].Silver;
-    const sport = map[date].Sportswear;
-    const indu  = map[date].Indu;
-    const rowTotal = silver + sport + indu;
-
-    totSilver += silver;
-    totSport  += sport;
-    totIndu   += indu;
-    grandTotal += rowTotal;
-
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td style="padding:8px;border:1px solid #cfe9ff;">${date}</td>
-      <td style="padding:8px;border:1px solid #cfe9ff;">${silver}</td>
-      <td style="padding:8px;border:1px solid #cfe9ff;">${sport}</td>
-      <td style="padding:8px;border:1px solid #cfe9ff;">${indu}</td>
-    `;
-    tbody.appendChild(row);
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td style="padding:8px;border:1px solid #cfe9ff;">${sum.date}</td>
+        <td style="padding:8px;border:1px solid #cfe9ff;">${silver}</td>
+        <td style="padding:8px;border:1px solid #cfe9ff;">${sport}</td>
+        <td style="padding:8px;border:1px solid #cfe9ff;">${indu}</td>
+      `;
+      tbody.appendChild(row);
   });
 
   // ✅ Totals row
@@ -1645,39 +2166,77 @@ expenses.forEach(e => {
   `;
   tbody.appendChild(totalRow);
 
-// Load Expenses
-if (expenses.length == 0){
-   if(isViewingReport){
-   document.getElementById("List-txt").innerText = "Expenses List:"
-   }
-   document.getElementById("List-txt").innerText = "No Expenses"
-} else{
-   document.getElementById("List-txt").innerText = "Expenses List:"
-}
-   
+  // Load Expenses (No Change Needed)
+  const expenseListDiv = document.getElementById('expenseList');
+  expenseListDiv.innerHTML = '';
 
-// ✅ Final totals
-totalsBox.innerText = `Grand Total: ₱${grandTotal}\nExpenses: ₱${totalExpenses}\nNet: ₱${grandTotal - totalExpenses}`;
+  const expenses = (await getExpensesOnce())
+    .filter(e => e.cashier === currentUser.name);
 
- //Report Confirm
- document.getElementById('reportSum').innerHTML = `Report Summary: <br> <br>
+  if (expenses.length === 0) {
+    if(isViewingReport){
+        document.getElementById("List-txt").innerText = "Expenses List:";
+    } else {
+        document.getElementById("List-txt").innerText = "No Expenses";
+    }
+  } else {
+    document.getElementById("List-txt").innerText = "Expenses List:";
+  }
+
+  let totalExpenses = 0;
+
+  expenses.forEach(e => {
+    const div = document.createElement('div');
+    div.style.padding = '6px';
+    div.style.borderBottom = '1px solid #e6f7ff';
+    div.style.display = 'flex';
+    div.style.justifyContent = 'space-between';
+
+    const text = document.createElement('span');
+    text.innerText = `${e.description}: ₱${e.amount}`;
+    div.appendChild(text);
+
+    const delBtn = document.createElement('button');
+    delBtn.innerText = 'X';
+    delBtn.style.background = 'var(--danger)';
+    delBtn.style.color = '#fff';
+    delBtn.style.border = 'none';
+    delBtn.style.borderRadius = '4px';
+    delBtn.style.padding = '2px 6px';
+
+    delBtn.onclick = async () => {
+      if (!confirm('Delete this expense?')) return;
+      await deleteDoc(doc(db, 'expenses', e.id));
+      expensesCache = null;
+      await buildSalesHistory();
+    };
+
+    div.appendChild(delBtn);
+    expenseListDiv.appendChild(div);
+
+    totalExpenses += e.amount;
+  });
+
+  // ✅ Final totals
+  totalsBox.innerText = `Grand Total: ₱${grandTotal}\nExpenses: ₱${totalExpenses}\nNet: ₱${grandTotal - totalExpenses}`;
+
+  //Report Confirm
+  document.getElementById('reportSum').innerHTML = `Report Summary: <br> <br>
      Date: ${fromSel.value} - ${toSel.value} <br>
      Grand Total: ₱${grandTotal} <br>
      Expenses:    ₱${totalExpenses} <br>
      Net:         ₱${grandTotal - totalExpenses} <br>`;
-
 }
 
 async function makeReport() {
   const from = document.getElementById('historyDateFrom').value;
   const to   = document.getElementById('historyDateTo').value;
 
-  const sales = (await getSalesOnce()).filter(s =>
-  s.cashier === currentUser.name &&
-  new Date(s.date) >= new Date(from) &&
-  new Date(s.date) <= new Date(to + ' 23:59')
-);
-
+  // FETCH RANGE
+  let sales = await fetchSalesByRange(from, to);
+  
+  // Filter for user
+  sales = sales.filter(s => s.cashier === currentUser.name);
 
   if (sales.length === 0) {
     alert('No sales to report');
@@ -1711,30 +2270,51 @@ async function makeReport() {
 
   // MARK SALES AS REPORTED
   const dateRange = [];
-sales.forEach(s => {
-  const d = new Date(s.date).toLocaleDateString();
-  if (!dateRange.includes(d)) dateRange.push(d);
-});
+  sales.forEach(s => {
+    // 🛑 FIX: Use strict YYYY-MM-DD from the sale record or force it
+    // This matches the sales_counter and dropdown format exactly.
+    let d;
+    if(s.dateKey) {
+        d = s.dateKey;
+    } else {
+        const dateObj = new Date(s.date);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        d = `${year}-${month}-${day}`;
+    }
+    
+    // Normalize before pushing
+    d = standardizeDate(d);
 
-const repRef = doc(db, 'reported_dates', currentUser.name);
+    if (!dateRange.includes(d)) dateRange.push(d);
+  });
 
-// get existing reported dates
-const repSnap = await getDocs(collection(db, 'reported_dates'));
-const repDoc = repSnap.docs.find(d => d.id === currentUser.name);
+  // ✅ CASE INSENSITIVE REPORT SAVING
+  // Find the correct document even if casing is mismatched
+  const repSnap = await getDocs(collection(db, 'reported_dates'));
+  let repDoc = repSnap.docs.find(d => d.id === currentUser.name);
+  if(!repDoc) {
+      repDoc = repSnap.docs.find(d => d.id.toLowerCase() === currentUser.name.toLowerCase());
+  }
 
-let existingDates = [];
-if (repDoc && repDoc.data().dates) {
-  existingDates = repDoc.data().dates;
-}
+  // Use the ID found (or default to current user name if creating new)
+  const finalDocId = repDoc ? repDoc.id : currentUser.name;
+  const repRef = doc(db, 'reported_dates', finalDocId);
 
-// merge old + new (no duplicates)
-const mergedDates = [...new Set([...existingDates, ...dateRange])];
+  let existingDates = [];
+  if (repDoc && repDoc.data().dates) {
+    existingDates = repDoc.data().dates;
+  }
 
-await setDoc(repRef, {
-  dates: mergedDates
-});
+  // merge old + new (no duplicates)
+  // Ensure we standardize existing dates too before saving back
+  const cleanExistingDates = existingDates.map(standardizeDate);
+  const mergedDates = [...new Set([...cleanExistingDates, ...dateRange])];
 
-
+  await setDoc(repRef, {
+    dates: mergedDates
+  });
 
   alert('Report saved!');
   // 🧹 CLEAR EXPENSES AFTER REPORT
@@ -1907,11 +2487,20 @@ async function saveExpense() {
   await buildSalesHistory();
 }
 
+// =======================================================
+// ✅ MODIFIED: loadReports with CASHIER FILTER
+// =======================================================
 async function loadReports() {
+  const list = document.getElementById('reportList');
+  const filterSelect = document.getElementById('reportCashierFilter');
+  
+  list.innerHTML = 'Loading...';
+
+  // 1. Fetch Reports
   const snap = await getDocs(collection(db, 'reports'));
 
-  // 🔽 Convert to array + sort by createdAt (NEWEST FIRST)
-  const reports = snap.docs
+  // Convert to array + sort by createdAt (NEWEST FIRST)
+  const allReports = snap.docs
     .map(d => ({ id: d.id, ...d.data() }))
     .sort((a, b) => {
       const aTime = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
@@ -1919,35 +2508,76 @@ async function loadReports() {
       return bTime - aTime;
     });
 
-  const list = document.getElementById('reportList');
-  list.innerHTML = '';
+  // 2. Populate Cashier Dropdown (Only if not already populated)
+  // We check length > 1 because "All Cashiers" is index 0
+  if (filterSelect.options.length <= 1) {
+      const cashiers = await getCashiersOnce();
+      cashiers.forEach(c => {
+          // Avoid duplicates in dropdown
+          let exists = false;
+          for(let i=0; i<filterSelect.options.length; i++){
+              if(filterSelect.options[i].value === c.username) exists = true;
+          }
+          
+          if(!exists){
+              const opt = document.createElement('option');
+              opt.value = c.username;
+              opt.innerText = c.username;
+              filterSelect.appendChild(opt);
+          }
+      });
+  }
 
-  reports.forEach(r => {
-    const created = r.createdAt?.toDate
-      ? r.createdAt.toDate()
-      : new Date(r.createdAt);
+  // 3. Define Render Function
+  function renderList() {
+      const selectedCashier = filterSelect.value;
+      list.innerHTML = '';
 
-    const div = document.createElement('div');
-    div.style.background = 'var(--card)';
-    div.style.padding = '12px';
-    div.style.borderRadius = '10px';
-    div.style.boxShadow = '0 2px 6px rgba(0,0,0,0.06)';
-    div.style.marginBottom = '10px';
-    div.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <strong>Cashier:</strong> ${r.cashier}<br>
-          <span>${r.fromDate} - ${r.toDate}</span><br>
-          <small style="color:gray;">
-            Submitted: ${created.toLocaleString()}
-          </small>
-        </div>
-        <button onclick="viewReport('${r.id}')">View</button>
-      </div>
-    `;
-    list.appendChild(div);
-  });
+      // Filter Logic
+      const filteredReports = selectedCashier === 'All' 
+          ? allReports 
+          : allReports.filter(r => r.cashier === selectedCashier);
+
+      if (filteredReports.length === 0) {
+          list.innerHTML = '<p style="text-align:center; padding:20px;">No reports found for this selection.</p>';
+          return;
+      }
+
+      filteredReports.forEach(r => {
+        const created = r.createdAt?.toDate
+          ? r.createdAt.toDate()
+          : new Date(r.createdAt);
+
+        const div = document.createElement('div');
+        div.style.background = 'var(--card)';
+        div.style.padding = '12px';
+        div.style.borderRadius = '10px';
+        div.style.boxShadow = '0 2px 6px rgba(0,0,0,0.06)';
+        div.style.marginBottom = '10px';
+        div.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong>Cashier:</strong> ${r.cashier}<br>
+              <span>${r.fromDate} - ${r.toDate}</span><br>
+              <small style="color:gray;">
+                Submitted: ${created.toLocaleString()}
+              </small>
+            </div>
+            <button onclick="viewReport('${r.id}')">View</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+  }
+
+  // 4. Attach Event Listener for Filter
+  filterSelect.onchange = renderList;
+
+  // 5. Initial Render
+  renderList();
 }
+// =======================================================
+
 
 async function viewReport(id) {
   isViewingReport = true;
@@ -2011,6 +2641,145 @@ async function viewReport(id) {
    Net: ₱${report.net}`;
 }
 
+
+// ========== NEW FIX FUNCTION ==========
+// Run this once in your browser console: window.fixDateFormat()
+window.fixDateFormat = async function() {
+  console.log("Starting Date Format Fix...");
+  const snap = await getDocs(collection(db, "sales"));
+  let count = 0;
+  
+  for (const d of snap.docs) {
+    const data = d.data();
+    const oldDate = data.date;
+
+    // Detect if date starts with "1" (like 12/8/2025) or isn't strict ISO
+    if (typeof oldDate === 'string' && !oldDate.startsWith("20")) {
+      const dateObj = new Date(oldDate);
+      if (!isNaN(dateObj.getTime())) {
+        const newISO = dateObj.toISOString();
+        
+        // Fix the date format
+        await updateDoc(doc(db, "sales", d.id), {
+           date: newISO,
+           saleDate: newISO 
+        });
+        console.log(`Fixed: ${oldDate} -> ${newISO}`);
+        count++;
+      }
+    }
+  }
+  alert(`Fixed ${count} sales records! Refresh the page now.`);
+};
+
+// ================= MIGRATION TOOL =================
+// 🚨 RUN THIS ONCE IN CONSOLE TO FIX HISTORY 🚨
+window.migrateDailySummaries = async function() {
+    console.log("Starting Daily Summary Migration...");
+    
+    // 1. Fetch ALL sales
+    const salesSnap = await getDocs(collection(db, 'sales'));
+    const sales = salesSnap.docs.map(d => d.data());
+    
+    // 2. Aggregate locally
+    const summaries = {}; // Key: "2025-12-28_CashierName"
+
+    sales.forEach(s => {
+        let dateKey;
+        if(s.dateKey) {
+            dateKey = s.dateKey;
+        } else {
+            // Fallback for old data
+            const d = new Date(s.date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            dateKey = `${year}-${month}-${day}`;
+        }
+
+        const key = `${dateKey}_${s.cashier}`;
+        
+        if(!summaries[key]) {
+            summaries[key] = {
+                date: dateKey,
+                cashier: s.cashier,
+                GrandTotal: 0,
+                Silver: 0,
+                Sportswear: 0,
+                Indu: 0
+            };
+        }
+
+        summaries[key].GrandTotal += s.total;
+        
+        s.products.forEach(p => {
+            if(!summaries[key][p.category]) summaries[key][p.category] = 0;
+            summaries[key][p.category] += (p.qty * p.price);
+        });
+    });
+
+    // 3. Write to Firestore (Batch)
+    const batch = writeBatch(db);
+    let count = 0;
+    
+    for (const key in summaries) {
+        const ref = doc(db, 'daily_summaries', key);
+        batch.set(ref, summaries[key], { merge: true });
+        count++;
+    }
+
+    await batch.commit();
+    alert(`Migration Complete! Created ${count} summary records.`);
+};
+
+// ================= REPORTED DATES FIX TOOL =================
+// 🚨 RUN THIS ONCE IN CONSOLE TO FIX OLD "12/28/2025" FORMATS 🚨
+window.fixReportedDates = async function() {
+    console.log("Fixing reported dates format...");
+    const snap = await getDocs(collection(db, 'reported_dates'));
+    let count = 0;
+
+    for (const d of snap.docs) {
+        const data = d.data();
+        if (!data.dates || !Array.isArray(data.dates)) continue;
+
+        const newDates = [];
+        let changed = false;
+
+        data.dates.forEach(dateStr => {
+            // Check if it looks like MM/DD/YYYY (contains slashes)
+            if (dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                if (parts.length === 3) {
+                    // Ensure padding (e.g., 9 -> 09)
+                    const m = parts[0].padStart(2, '0');
+                    const day = parts[1].padStart(2, '0');
+                    const y = parts[2];
+                    // Convert to YYYY-MM-DD
+                    newDates.push(`${y}-${m}-${day}`);
+                    changed = true;
+                } else {
+                    newDates.push(dateStr); // Keep if weird format
+                }
+            } else {
+                newDates.push(dateStr); // Already correct or ISO
+            }
+        });
+
+        if (changed) {
+            // Remove duplicates while we are at it
+            const uniqueDates = [...new Set(newDates)];
+            await updateDoc(doc(db, 'reported_dates', d.id), {
+                dates: uniqueDates
+            });
+            console.log(`Fixed ${d.id}:`, uniqueDates);
+            count++;
+        }
+    }
+    alert(`Fixed reported dates for ${count} cashiers!`);
+};
+
+
 // Expose functions to global scope for HTML onclick
 window.login = login;
 window.logout = logout;
@@ -2019,7 +2788,6 @@ window.toggleAddProduct = toggleAddProduct;
 window.addProduct = addProduct;
 window.addCashier = addCashier;
 window.deleteCashier = deleteCashier;
-window.editCashier = editCashier;
 window.openModal = openModal;
 window.openCustomModal = openCustomModal;
 window.closeModal = closeModal;
@@ -2042,6 +2810,11 @@ window.viewReport = viewReport;
 window.openExpenseModal = openExpenseModal;
 window.closeExpenseModal = closeExpenseModal;
 window.saveExpense = saveExpense;
+
+// NEW EXPORTS
+window.openEditCashierModal = openEditCashierModal;
+window.closeEditCashierModal = closeEditCashierModal;
+window.saveEditCashier = saveEditCashier;
 </script>
 </body>
 </html>
