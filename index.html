@@ -14,7 +14,10 @@
  --primary-dark: #5ea8ff;
  --muted: #5a6b7a;
  --danger: #ff6b6b;
+ --success: #4cd964; /* Added for Active status */
  --accent-ghost: #dff1ff;
+ --border: #cfe9ff;  /* Added for Cards */
+ --text-main: #334e68; /* Added for Cards */
 
  /* NEW VARIABLES FOR TICKETS */
  --ticket-border: #cfe9ff;
@@ -56,12 +59,161 @@ input, select {
 
 /* ---------- SECTIONS ---------- */
 .section { margin-top:18px; }
-#inventoryList div, #cashierList div{
+#inventoryList div {
  margin-bottom:10px; padding:10px;
   background:var(--card); border-radius:8px;
  box-shadow:0 2px 5px rgba(0,0,0,0.06);
  display:flex; justify-content:space-between; align-items:center;
 }
+
+/* =========================================
+   CASHIER CARD STYLES (NEW DESIGN)
+   ========================================= */
+.cashier-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.cashier-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(127, 183, 255, 0.15);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+}
+
+.cashier-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(127, 183, 255, 0.25);
+    border-color: var(--primary);
+}
+
+/* Header (Avatar + Info) */
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    background: linear-gradient(135deg, #e6f3ff 0%, #cfe9ff 100%);
+    color: var(--primary-dark);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 18px;
+    border: 2px solid white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.username {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Status Badges */
+.status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.status-active { color: var(--success); }
+.status-active::before {
+    content: ''; display: block; width: 6px; height: 6px; 
+    background: var(--success); border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(76, 217, 100, 0.2);
+}
+
+.status-disabled { color: var(--danger); }
+.status-disabled::before {
+    content: ''; display: block; width: 6px; height: 6px; 
+    background: var(--danger); border-radius: 50%;
+}
+
+/* Disabled Card State */
+.cashier-card.is-disabled {
+    background: #f8fafc;
+    opacity: 0.8;
+}
+.cashier-card.is-disabled .avatar {
+    filter: grayscale(100%);
+    opacity: 0.7;
+}
+
+/* Action Buttons */
+.card-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+}
+
+.action-btn {
+    flex: 1;
+    padding: 10px 0;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none; /* Reset global shadow */
+}
+
+/* Button Variants */
+.btn-toggle { background: #e0f2fe; color: #0284c7; }
+.btn-toggle:hover { background: #bae6fd; transform: translateY(-1px); }
+
+.btn-toggle.enable-state { background: #dcfce7; color: #166534; }
+.btn-toggle.enable-state:hover { background: #bbf7d0; transform: translateY(-1px); }
+
+.btn-edit { background: #f1f5f9; color: #475569; }
+.btn-edit:hover { background: #e2e8f0; transform: translateY(-1px); }
+
+.btn-delete {
+    background: #fee2e2;
+    color: #991b1b;
+    flex: 0 0 40px; 
+    font-size: 18px;
+}
+.btn-delete:hover { background: #fecaca; transform: translateY(-1px); }
+
+/* =========================================
+   END CASHIER CARD STYLES
+   ========================================= */
 
 /* ---------- POS LAYOUT ---------- */
 #pos { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; align-items:flex-start; }
@@ -335,7 +487,7 @@ input, select {
 }
 
 /* New Ticket Delete Button */
-.btn-delete {
+.btn-delete-ticket {
     background: transparent;
     border: none;
     color: #ccc;
@@ -347,7 +499,7 @@ input, select {
     transition: 0.2s;
     box-shadow: none; /* Override general button shadow */
 }
-.btn-delete:hover {
+.btn-delete-ticket:hover {
     background: #fee2e2;
     color: var(--danger);
     transform: none; /* Override general button hover */
@@ -423,6 +575,15 @@ input, select {
  #cart { max-height:none; width:100%; margin-top:10px;}
 }
 
+/* --- Added Mobile Fix for Cashier Grid --- */
+@media (max-width: 768px) {
+    .container { padding: 10px; } /* Slightly reduce padding */
+    .cashier-grid {
+        grid-template-columns: 1fr; /* Force single column on mobile */
+        gap: 16px;
+    }
+}
+
 /* Dark theme support */
 body.dark-theme #side-panel{
    background-color: #515151;
@@ -441,6 +602,10 @@ body.dark-theme  {
   --ticket-border: #333333;
   --ticket-shadow: rgba(0,0,0,0.2);
   --ticket-hover-shadow: rgba(0,0,0,0.3);
+  
+  /* Cashier Card Dark Mode */
+  --border: #333333;
+  --text-main: #e0e0e0;
 
   color: var(--muted);
   background: var(--bg);
@@ -459,11 +624,36 @@ body.dark-theme button {
 
 body.dark-theme #cart,
 body.dark-theme #productGrid .product,
-body.dark-theme #inventoryList div,
-body.dark-theme #cashierList div {
+body.dark-theme #inventoryList div {
   background: var(--card);
   color: var(--muted);
 }
+
+/* Dark Theme Overrides for Cashier Card */
+body.dark-theme .cashier-card:hover {
+    background: #252525;
+    border-color: var(--primary);
+}
+body.dark-theme .avatar {
+    background: #2a2a2a;
+    border-color: #333;
+    color: var(--primary);
+}
+body.dark-theme .cashier-card.is-disabled {
+    background: #141414;
+    border-color: #222;
+    opacity: 0.6;
+}
+
+body.dark-theme .btn-toggle { background: #0c4a6e; color: #bae6fd; }
+body.dark-theme .btn-toggle:hover { background: #075985; }
+body.dark-theme .btn-toggle.enable-state { background: #064e3b; color: #a7f3d0; }
+body.dark-theme .btn-toggle.enable-state:hover { background: #065f46; }
+body.dark-theme .btn-edit { background: #334155; color: #cbd5e1; }
+body.dark-theme .btn-edit:hover { background: #475569; }
+body.dark-theme .btn-delete { background: #450a0a; color: #fca5a5; }
+body.dark-theme .btn-delete:hover { background: #7f1d1d; }
+
 
 /* Dark theme specific overrides for custom card */
 body.dark-theme .custom-product {
@@ -489,7 +679,7 @@ body.dark-theme .ticket-footer {
     border-top-color: rgba(255,255,255,0.1);
 }
 
-body.dark-theme .btn-delete:hover {
+body.dark-theme .btn-delete-ticket:hover {
     background: rgba(255, 107, 107, 0.2);
 }
 
@@ -555,7 +745,8 @@ body.dark-theme .badge.indu  { background: #431407; color: #fed7aa; }
     <input type="text" id="cashierName" placeholder="Cashier Username">
     <input type="password" id="cashierPass" placeholder="Password">
     <button onclick="addCashier()" style="margin-bottom:10px; height:40px; width:100%">Add Cashier</button>
-   <div id="cashierList"></div>
+   <!-- UPDATED CASHIER LIST CONTAINER (GRID) -->
+   <div id="cashierList" class="cashier-grid"></div>
  </div>
 
   <div id="salesSummary" class="hidden section">
@@ -589,7 +780,6 @@ body.dark-theme .badge.indu  { background: #431407; color: #fed7aa; }
      <div id="settingsList" style="display:flex; flex-direction:column; gap:10px;"></div>
    </div>
    
-   <!-- MODIFIED: Reports Section with Cashier Filter -->
    <div id="reports" class="hidden section">
      <h3>Report List</h3>
      
@@ -728,6 +918,14 @@ body.dark-theme .badge.indu  { background: #431407; color: #fed7aa; }
   </div>
 </div>
 
+<!-- ACCESS DENIED MODAL (NEW) -->
+<div id="accessDeniedModal" class="modal">
+  <div class="modal-content" style="text-align:center; border: 2px solid var(--danger);">
+    <h3 style="color:var(--danger)">ACCESS DENIED</h3>
+    <p style="font-size:18px; margin: 20px 0;">Your account has been disabled by the administrator.</p>
+    <button onclick="closeAccessDenied()" style="background: var(--muted);">Close</button>
+  </div>
+</div>
 
 <!-- MODAL -->
 <div id="productModal" class="modal" >
@@ -977,6 +1175,12 @@ localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
   const cashier = cashiers.find(c => c.username === u && c.password === p);
 
   if (cashier) {
+      // ✅ CHECK IF DISABLED
+      if(cashier.disabled === true) {
+          document.getElementById('accessDeniedModal').style.display = 'flex';
+          return;
+      }
+
   // ✅ FIX: Use the exact username from the database (e.g. "Diana"), not what user typed ("diana")
   // This ensures document IDs in 'reported_dates' match correctly.
   currentUser = { role: 'cashier', name: cashier.username };
@@ -995,6 +1199,10 @@ localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
 }else{
    alert("WRONG PASSWORD OR USERNAME!");
 }
+}
+
+function closeAccessDenied() {
+    document.getElementById('accessDeniedModal').style.display = 'none';
 }
 
 window.managePanel = function () {
@@ -1200,22 +1408,68 @@ const data = product;
 
 
 
-/* ---------- CASHIERS ---------- */
+/* ---------- CASHIERS (UPDATED FOR NEW DESIGN) ---------- */
 async function loadCashiers() {
   const cashiersSnapshot = await getDocs(collection(db, 'cashiers'));
   const cashiers = cashiersSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-  const list = document.getElementById('cashierList'); list.innerHTML = '';
-  cashiers.forEach((c, i) => {
-    // UPDATED: Now calls openEditCashierModal instead of the old prompt function
-    list.innerHTML += `<div class="cashier-tab">${c.username} <div classh="cashier-tab-btn"><button onclick="openEditCashierModal('${c.id}')">Edit</button> <button onclick="deleteCashier('${c.id}')">Delete</button></div></div>`;
+  
+  const list = document.getElementById('cashierList'); 
+  list.innerHTML = ''; // Clear previous
+
+  cashiers.forEach((c) => {
+    // Check disable status
+    const isDisabled = c.disabled === true;
+    
+    // Determine visual states
+    const statusBadge = isDisabled 
+        ? '<span class="status-badge status-disabled">Disabled</span>' 
+        : '<span class="status-badge status-active">Active</span>';
+
+    const cardClass = isDisabled ? 'cashier-card is-disabled' : 'cashier-card';
+    const avatarInitial = c.username.charAt(0).toUpperCase();
+    
+    // Toggle Button Logic
+    const toggleBtnClass = isDisabled ? 'btn-toggle enable-state' : 'btn-toggle';
+    const toggleBtnText = isDisabled ? 'Enable' : 'Disable';
+
+    const html = `
+    <div class="${cardClass}">
+        <div class="card-header">
+            <div class="avatar">${avatarInitial}</div>
+            <div class="info">
+                <span class="username">${c.username}</span>
+                ${statusBadge}
+            </div>
+        </div>
+        <div class="card-actions">
+            <button class="action-btn ${toggleBtnClass}" onclick="toggleCashierStatus('${c.id}', ${isDisabled})">${toggleBtnText}</button>
+            <button class="action-btn btn-edit" onclick="openEditCashierModal('${c.id}')">Edit</button>
+            <button class="action-btn btn-delete" onclick="deleteCashier('${c.id}')">×</button>
+        </div>
+    </div>`;
+    
+    list.innerHTML += html;
   });
+}
+
+// NEW FUNCTION: Toggle Disable/Enable
+async function toggleCashierStatus(id, currentStatus) {
+    // Flip the status
+    const newStatus = !currentStatus;
+    
+    await updateDoc(doc(db, 'cashiers', id), {
+        disabled: newStatus
+    });
+    
+    cashiersCache = null; // refresh cache
+    await loadCashiers();
 }
 
 async function addCashier() {
   const u = document.getElementById('cashierName').value.trim();
   const p = document.getElementById('cashierPass').value.trim();
   if (!u || !p) return alert('Fill all fields');
-  await addDoc(collection(db, 'cashiers'), { username: u, password: p });
+  await addDoc(collection(db, 'cashiers'), { username: u, password: p, disabled: false });
   await loadCashiers();
   document.getElementById('cashierName').value = '';
   document.getElementById('cashierPass').value = '';
@@ -1381,7 +1635,7 @@ async function filterSales(cat) {
     `;
 
     const delBtn = document.createElement('button');
-    delBtn.className = 'btn-delete';
+    delBtn.className = 'btn-delete-ticket';
     delBtn.innerText = '×'; // Special X character
     
     delBtn.onclick = async () => {
@@ -1890,7 +2144,7 @@ async function loadDailySales() {
     `;
 
     const delBtn = document.createElement('button');
-    delBtn.className = 'btn-delete';
+    delBtn.className = 'btn-delete-ticket';
     delBtn.innerText = '×'; 
     delBtn.onclick = async () => {
       if (confirm('Delete this transaction?')) {
@@ -2828,6 +3082,8 @@ window.saveExpense = saveExpense;
 window.openEditCashierModal = openEditCashierModal;
 window.closeEditCashierModal = closeEditCashierModal;
 window.saveEditCashier = saveEditCashier;
+window.toggleCashierStatus = toggleCashierStatus;
+window.closeAccessDenied = closeAccessDenied;
 </script>
 </body>
 </html>
