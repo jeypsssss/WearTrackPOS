@@ -1069,7 +1069,7 @@ body.dark-theme .badge-indu { background: #431407; color: #fb923c; }
 <div id="accessDeniedModal" class="modal" style="z-index: 100000000;">
   <div class="modal-content" style="text-align:center; border: 2px solid var(--danger);">
     <h3 style="color:var(--danger)">ACCESS DENIED</h3>
-    <p style="font-size:18px; margin: 20px 0;">Your account has been disabled by the administrator.</p>
+    <p style="font-size:18px; margin: 20px 0;">Your account has been disabled by the administrator, ask admin for access</p>
     <button onclick="closeAccessDenied()" style="background: var(--muted);">Close</button>
   </div>
 </div>
@@ -1404,7 +1404,7 @@ function logout() {
       unsubscribeCashierListener();
       unsubscribeCashierListener = null;
   }
-
+  cashiersCache = null
   currentUser = null;
   cart = [];
   localStorage.removeItem('pos_cart');
@@ -1711,6 +1711,7 @@ async function addCashier() {
   await loadCashiers();
   document.getElementById('cashierName').value = '';
   document.getElementById('cashierPass').value = '';
+  cashiersCache = null;
 }
 
 async function deleteCashier(id) {
