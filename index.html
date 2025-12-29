@@ -919,7 +919,7 @@ body.dark-theme .badge.indu  { background: #431407; color: #fed7aa; }
 </div>
 
 <!-- ACCESS DENIED MODAL (NEW) -->
-<div id="accessDeniedModal" class="modal">
+<div id="accessDeniedModal" class="modal" style="z-index: 100000000;">
   <div class="modal-content" style="text-align:center; border: 2px solid var(--danger);">
     <h3 style="color:var(--danger)">ACCESS DENIED</h3>
     <p style="font-size:18px; margin: 20px 0;">Your account has been disabled by the administrator.</p>
@@ -1003,7 +1003,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import {
   getFirestore, collection, getDocs, addDoc, deleteDoc,
   doc, updateDoc, setDoc, increment, getDoc,
-  query, where, writeBatch, deleteField
+  query, where, writeBatch, deleteField, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
@@ -1062,6 +1062,9 @@ let customCategoryStatus = {
   Silver: true,
   Indu: true
 };
+
+// 🌟 GLOBAL LISTENER VARIABLE
+let unsubscribeCashierListener = null;
 
 /* ---------- SCALABILITY HELPERS ---------- */
 
@@ -1194,6 +1197,10 @@ localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
   await loadSettings();
   await loadProducts();
   await loadDailySales();
+  
+  // 🌟 START LISTENING FOR LOCKOUTS
+  monitorCashierStatus();
+
   msg.innerText = '';
   return;
 }else{
@@ -1213,8 +1220,44 @@ window.adminPanel = function () {
   document.getElementById("adminPanel").classList.toggle("active");
 };
 
+// 🌟 NEW FUNCTION: REAL-TIME SECURITY CHECK
+function monitorCashierStatus() {
+   // Only run if it's a cashier
+   if(!currentUser || currentUser.role !== 'cashier') return;
+
+   // Query for the current user's document
+   const q = query(collection(db, 'cashiers'), where('username', '==', currentUser.name));
+   
+   // Start Listener
+   unsubscribeCashierListener = onSnapshot(q, (snapshot) => {
+       if(!snapshot.empty) {
+           const data = snapshot.docs[0].data();
+           
+           // If they get disabled while using the app:
+           if(data.disabled === true) {
+               // Show modal
+               document.getElementById('accessDeniedModal').style.display = 'flex';
+               
+               // Logout after 2 seconds
+               setTimeout(() => {
+                   document.getElementById('accessDeniedModal').style.display = 'none';
+                   logout();
+               }, 2000);
+           }
+       }
+   }, (error) => {
+       console.log("Listener error (ignore if logged out):", error);
+   });
+}
+
 
 function logout() {
+  // 🌟 STOP LISTENER TO SAVE RESOURCES
+  if(unsubscribeCashierListener) {
+      unsubscribeCashierListener();
+      unsubscribeCashierListener = null;
+  }
+
   currentUser = null;
   cart = [];
   localStorage.removeItem('pos_cart');
@@ -2662,6 +2705,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadProducts();
     await loadDailySales();
     
+    // 🌟 RE-ATTACH LISTENER ON PAGE REFRESH
+    monitorCashierStatus();
+
     loadCartFromStorage();
     renderCart();
   }
