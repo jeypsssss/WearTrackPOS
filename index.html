@@ -854,18 +854,24 @@ body.dark-theme .badge-indu { background: #431407; color: #fb923c; }
        <img src="Image/Menu.png" alt="Image/Menu.png" class="menuBtn">
     </button>
    </div>
-   <div id="adminPanel">
-      <div style="display:flex; justify-content:end; margin: 10px;">
-      <button onclick="adminPanel()" style="width:40px; height:40px;">X</button>
+   <div id="adminPanel" style="display:flex; justify-content:space-between; flex-direction:column;">
+      <div>
+            <div style="display:flex; justify-content:end; margin: 10px;">
+            <button onclick="adminPanel()" style="width:40px; height:40px;">X</button>
+            </div>
+         <div class="admin-btn">
+          <button onclick="showSection('inventory')">Inventory</button>
+          <button onclick="showSection('cashiers')">Cashiers</button>
+          <button onclick="showSection('salesSummary')">Sales Summary</button>
+          <button onclick="showSection('settings')">Settings</button>
+          <button onclick="showSection('reports')">Reports</button>
+          <button onclick="logout()">Logout</button>
+         </div>
       </div>
-   <div class="admin-btn">
-    <button onclick="showSection('inventory')">Inventory</button>
-    <button onclick="showSection('cashiers')">Cashiers</button>
-    <button onclick="showSection('salesSummary')">Sales Summary</button>
-    <button onclick="showSection('settings')">Settings</button>
-    <button onclick="showSection('reports')">Reports</button>
-    <button onclick="logout()">Logout</button>
-   </div>
+      <div style="color:#ffffffb1; display:flex; justify-content:space-between; padding:10px">
+         <small>v5.0.2.23 beta</small>
+         <small>Dev:jeypsss</small>
+      </div>
    </div>
 
  <div id="inventory" class="hidden section">
@@ -951,15 +957,22 @@ body.dark-theme .badge-indu { background: #431407; color: #fb923c; }
      </button>
   </div>
 </div>
-<div id="side-panel" style="">
-   <div style="display:flex; justify-content:space-between; align-items:center; padding: 10px 10px;">
-      <h1 style="color: #f6f6f6; font-size: 20px">Cashier: <strong id="cashierNameDisplay"></strong></h1>
-      <button onclick="managePanel()" style="width:40px; height:40px;">X</button>
+<div id="side-panel" style="display:flex; flex-direction:column; justify-content: space-between;">
+   <div>
+      <div style="display:flex; justify-content:space-between; align-items:center; padding: 10px 10px;">
+         <h1 style="color: #f6f6f6; font-size: 20px">Cashier: <strong id="cashierNameDisplay"></strong></h1>
+         <button onclick="managePanel()" style="width:40px; height:40px;">X</button>
+      </div>
+      <div class="panel-btn" style="margin-top:50px">
+       <button onclick="openSalesHistory()">Sales History</button>
+        <button id="themeToggle"> 🌙 Dark Mode</button>
+       <button onclick="logout()">Logout</button>
+      </div>
    </div>
-   <div class="panel-btn" style="margin-top:50px">
-    <button onclick="openSalesHistory()">Sales History</button>
-     <button id="themeToggle"> 🌙 Dark Mode</button>
-    <button onclick="logout()">Logout</button>
+   <div style="padding:10px; display:flex; justify-content: space-between">
+      
+   <small>v5.0.2.23 beta</small>
+   <small>Dev:jeypsss</small>
    </div>
 </div>
 <!-- ADD EXPENSE MODAL -->
